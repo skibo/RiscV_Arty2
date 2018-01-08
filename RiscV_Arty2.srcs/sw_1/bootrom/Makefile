@@ -4,9 +4,10 @@ $(error RISCV must be set to point to RiscV toolchain)
 endif
 
 CROSS_COMPILE=$(RISCV)/bin/riscv64-unknown-elf-
+LD=$(CROSS_COMPILE)ld
+CC=$(CROSS_COMPILE)gcc
+AS=$(CROSS_COMPILE)as
 BIN2HEX=/usr/bin/hexdump -v -e '/4 "%08X\n"'
-
-TARGETS=bootrom.mem bootrom.lst
 
 OBJS=vect.o start.o exception.o main.o console.o monitor.o
 ELFS=bootrom.elf
@@ -16,17 +17,21 @@ LDSCRIPT=ldscript.riscv
 AFLAGS=-march=rv32i
 CFLAGS=-nostdinc -fno-builtin -march=rv32i -mabi=ilp32
 LFLAGS=-melf32lriscv -static -T $(LDSCRIPT)
+LIBS=$(shell $(CC) $(CFLAGS) -print-libgcc-file-name)
 
+TARGETS=bootrom.mem bootrom.lst
+
+.PHONY: default clean
 default: $(TARGETS)
 
 %.o: %.S
-	$(CROSS_COMPILE)as $(AFLAGS) -o $@ $<
+	$(AS) $(AFLAGS) -o $@ $<
 
 %.o: %.c
-	$(CROSS_COMPILE)gcc $(CFLAGS) -c $<
+	$(CC) $(CFLAGS) -c $<
 
 bootrom.elf: $(OBJS) $(LDSCRIPT)
-	$(CROSS_COMPILE)ld $(LFLAGS) -o $@ $(OBJS)
+	$(LD) $(LFLAGS) -o $@ $(OBJS) $(LIBS)
 
 bootrom_text.bin: bootrom.elf
 	$(CROSS_COMPILE)objcopy -j .vects -j .text -j .rodata -O binary $< $@
