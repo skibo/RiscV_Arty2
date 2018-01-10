@@ -46,13 +46,13 @@ main(void)
         WR32(GPIO0_TRI0, 0);
         WR32(GPIO0_TRI1, 0);
 
-        puts(say_hi);
+        cons_puts(say_hi);
 
-        puts("Date compiled: ");
-        puts(__DATE__);
-        puts("\nTime compiled: ");
-        puts(__TIME__);
-        puts("\n\nReady!\n");
+        cons_puts("Date compiled: ");
+        cons_puts(__DATE__);
+        cons_puts("\nTime compiled: ");
+        cons_puts(__TIME__);
+        cons_puts("\n\nReady!\n");
 
         /* Blink the LEDs in an interesting way. */
         for (;;) {
@@ -70,16 +70,16 @@ main(void)
                         DELAY(100000);
 
                         // poll keyboard
-                        if ((c = pollc()) == 'm')
+                        if ((c = cons_pollc()) == 'm')
                                 monitor();
                         else if (c >= 0)
                                 break;
                 }
-                puts("Buttons=");
-                puthex(RD32(GPIO1_DATA0), 1);
-                puts(" Switches=");
-                puthex(RD32(GPIO1_DATA1), 1);
-                puts("\n");
+                cons_puts("Buttons=");
+                cons_puthex(RD32(GPIO1_DATA0), 1);
+                cons_puts(" Switches=");
+                cons_puthex(RD32(GPIO1_DATA1), 1);
+                cons_puts("\n");
         }
 }
 

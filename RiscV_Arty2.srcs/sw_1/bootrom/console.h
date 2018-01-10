@@ -29,12 +29,12 @@
 #ifndef __CONSOLE_H__
 #define __CONSOLE_H__
 
-extern void putc(char);
-extern void puts(const char *);
-extern void puthex(unsigned int, int);
+extern void cons_putchar(char);
+extern void cons_puts(const char *);
+extern void cons_puthex(unsigned int, int);
 
-int getc(void);
-int pollc(void);
-void getline(char *, int);
-uint32_t gethex(char **, int);
+int cons_getchar(void);
+int cons_pollc(void);
+void cons_getline(char *, int);
+uint32_t cons_gethex(char **, int);
 #endif /* __CONSOLE_H__ */

@@ -47,22 +47,22 @@ dumpmem(uint32_t addr, int count)
         uint32_t data;
 
         while (count > 0) {
-                puthex(addr, 8);
-                puts(": ");
+                cons_puthex(addr, 8);
+                cons_puts(": ");
                 for (i = 0; i < 4; i++) {
                         data = *(uint32_t *)addr;
                         if (memfault) {
                                 memfault = 0;
                                 return;
                         }
-                        puthex(data, 8);
-                        putc(' ');
+                        cons_puthex(data, 8);
+                        cons_putchar(' ');
                         addr += 4;
                         if (--count <= 0)
                                 break;
                 }
-                puts("\n");
-                if (pollc() >= 0)
+                cons_puts("\n");
+                if (cons_pollc() >= 0)
                         break;
         }
 }
@@ -76,14 +76,14 @@ monitor(void) {
         uint32_t arg0, arg1;
         uint8_t cmd;
 
-        puts("\nMonitor:\n");
+        cons_puts("\nMonitor:\n");
 
         linebuf[0] = '\0';
         memfault = 0;
 
         for (;;) {
-                puts("> ");
-                getline(linebuf, sizeof(linebuf));
+                cons_puts("> ");
+                cons_getline(linebuf, sizeof(linebuf));
 
                 s = skipspace(linebuf);
                 cmd = *s++;
@@ -93,7 +93,7 @@ monitor(void) {
                 case 'r':
                         /* Read word. */
                         s = skipspace(s);
-                        arg0 = gethex(&s, 8);
+                        arg0 = cons_gethex(&s, 8);
 
                         data32 = *(uint32_t *)arg0;
 
@@ -102,24 +102,24 @@ monitor(void) {
                                 break;
                         }
 
-                        puthex(arg0, 8);
-                        puts(": ");
-                        puthex(data32, 8);
-                        puts("\r\n");
+                        cons_puthex(arg0, 8);
+                        cons_puts(": ");
+                        cons_puthex(data32, 8);
+                        cons_puts("\r\n");
                         break;
 
                 case 'w':
                         /* Write location. */
                         s = skipspace(s);
-                        arg0 = gethex(&s, 8);
+                        arg0 = cons_gethex(&s, 8);
                         s = skipspace(s);
-                        arg1 = gethex(&s, 8);
+                        arg1 = cons_gethex(&s, 8);
 
-                        puthex(arg0, 8);
-                        puts(" <- ");
-                        puthex(arg1, 8);
+                        cons_puthex(arg0, 8);
+                        cons_puts(" <- ");
+                        cons_puthex(arg1, 8);
                         *((uint32_t *)arg0) = arg1;
-                        puts("\r\n");
+                        cons_puts("\r\n");
                         if (memfault)
                                 memfault = 0;
                         break;
@@ -127,9 +127,9 @@ monitor(void) {
                 case 'd':
                         /* Dump memory. */
                         s = skipspace(s);
-                        arg0 = gethex(&s, 8);
+                        arg0 = cons_gethex(&s, 8);
                         s = skipspace(s);
-                        arg1 = gethex(&s, 8);
+                        arg1 = cons_gethex(&s, 8);
 
                         dumpmem(arg0, arg1);
                         break;
@@ -139,18 +139,18 @@ monitor(void) {
 
                 case 'h':
                 case '?':
-                        puts("Commands:\r\n"
-                             "   r <addr> -\t\tread location\r\n"
-                             "   w <addr> <data> -\twrite location\r\n"
-                             "   d <addr> <hexnum> -\tdump memory\r\n"
-                             "   q -\t\tquit monitor.\n"
+                        cons_puts("Commands:\r\n"
+                                  "   r <addr> -\t\tread location\r\n"
+                                  "   w <addr> <data> -\twrite location\r\n"
+                                  "   d <addr> <hexnum> -\tdump memory\r\n"
+                                  "   q -\t\t\tquit monitor.\n"
                                 );
                         break;
 
                 default:
-                        puts("Uknown command: ");
-                        putc(cmd);
-                        puts("  type h for help.\r\n");
+                        cons_puts("Uknown command: ");
+                        cons_putchar(cmd);
+                        cons_puts("  type h for help.\r\n");
                 }
         }
 }

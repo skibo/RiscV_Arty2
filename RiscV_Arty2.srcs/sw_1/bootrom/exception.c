@@ -39,26 +39,26 @@ dumpregs(uint32_t *r)
         int i;
 
         for (i = 0; i < 32; i++) {
-                puthex(r[i], 8);
+                cons_puthex(r[i], 8);
                 if ((i & 3) == 3)
-                        puts("\n");
+                        cons_puts("\n");
                 else
-                        putc(' ');
+                        cons_putchar(' ');
         }
 }
 
 void
 exception(uint32_t mcause, uint32_t mstatus, uint32_t mepc, uint32_t mbadaddr)
 {
-        puts("\nException!\nmcause=");
-        puthex(mcause, 8);
-        puts(" mstatus=");
-        puthex(mstatus, 8);
-        puts(" mepc=");
-        puthex(mepc, 8);
-        puts(" mbadaddr=");
-        puthex(mbadaddr, 8);
-        puts("\n\n");
+        cons_puts("\nException!\nmcause=");
+        cons_puthex(mcause, 8);
+        cons_puts(" mstatus=");
+        cons_puthex(mstatus, 8);
+        cons_puts(" mepc=");
+        cons_puthex(mepc, 8);
+        cons_puts(" mbadaddr=");
+        cons_puthex(mbadaddr, 8);
+        cons_puts("\n\n");
     
         dumpregs(xregs);
 
@@ -78,8 +78,8 @@ interrupt(void)
 {
         uint32_t a;
 
-        puts("\nInterrupt!? mepc=");
+        cons_puts("\nInterrupt!? mepc=");
         asm ("csrr %0, mepc" : "=r" (a));
-        puthex(a, 8);
-        puts("\n");
+        cons_puthex(a, 8);
+        cons_puts("\n");
 }

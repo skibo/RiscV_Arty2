@@ -29,7 +29,7 @@
 #include "console.h"
 
 void
-putc(char c)
+cons_putchar(char c)
 {
         while ((RD32(UART_STAT_REG) & UART_STAT_TX_FULL) != 0)
                 ;
@@ -37,45 +37,34 @@ putc(char c)
 }
 
 void
-puthex(unsigned int x, int n)
+cons_puthex(unsigned int x, int n)
 {
         int y;
 
         while (--n >= 0) {
                 y = (x >> (n << 2)) & 15;
                 if (y > 9)
-                        putc('A' - 10 + y);
+                        cons_putchar('A' - 10 + y);
                 else
-                        putc('0' + y);
+                        cons_putchar('0' + y);
         }
 }
 
 void
-puts(const char *s)
+cons_puts(const char *s)
 {
         while (*s) {
                 if (*s == '\n')
-                        putc('\r');
-                putc(*s++);
+                        cons_putchar('\r');
+                cons_putchar(*s++);
         }
-}
-
-int
-getc(void)
-{
-        int c;
-
-        while ((c = pollc()) < 0)
-                ;
-
-        return c;
 }
 
 /* Returns -1 if there is no read data because that is what
  * the UART_DATA_REG does.
  */
 int
-pollc(void)
+cons_pollc(void)
 {
         if ((RD32(UART_STAT_REG) & UART_STAT_RX_VALID) != 0)
                 return RD32(UART_RX_FIFO);
@@ -83,40 +72,51 @@ pollc(void)
                 return -1;
 }
 
+int
+cons_getchar(void)
+{
+        int c;
+
+        while ((c = cons_pollc()) < 0)
+                ;
+
+        return c;
+}
+
 void
-getline(char *s, int maxlen)
+cons_getline(char *s, int maxlen)
 {
         int c;
         int i = 0;
 
         for (;;) {
-                c = getc() & 0x7f;
+                c = cons_getchar() & 0x7f;
 
                 if (c == '\r') {
                         /* Return. */
-                        puts("\n");
+                        cons_puts("\n");
                         s[i] = '\0';
                         return;
                 } else if (c == 0x7f || c == '\b') {
                         /* Backspace. */
                         if (i > 0) {
-                                puts("\b \b");
+                                cons_puts("\b \b");
                                 i--;
                         }
                 } else if (c == '\020') {
                         /* Ctrl-P */
                         while (i < maxlen - 1 && s[i])
-                                putc(s[i++]);
+                                cons_putchar(s[i++]);
                 } else if ((c & 0x60) != 0 && i < maxlen - 1) {
                         /* All other printable characters. */
-                        putc(c);
+                        cons_putchar(c);
                         s[i++] = c;
                 }
         }
 }
 
 static uint8_t
-gethex1(char c) {
+cons_gethex1(char c) {
         if (c >= '0' && c <= '9')
                 return c-'0';
         else if (c >= 'a' && c <= 'f')
@@ -128,12 +128,12 @@ gethex1(char c) {
 }
 
 uint32_t
-gethex(char **s, int n) {
+cons_gethex(char **s, int n) {
         uint32_t data = 0;
         while (n > 0 && ((**s >= '0' && **s <= '9') ||
                          (**s >= 'a' && **s <= 'f') ||
                          (**s >= 'A' && **s <= 'F'))) {
-                data = (data << 4) | (uint32_t) gethex1(**s);
+                data = (data << 4) | (uint32_t) cons_gethex1(**s);
                 (*s)++;
                 n--;
         }
