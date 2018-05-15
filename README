@@ -13,13 +13,13 @@ into the monitor by hitting 'm' while the LEDs are blinking.
 Building (Linux only)
 ---------------------
 You need:
-	+ Xilinx Vivado (preferably later versions)
-	+ Digilent board files
-	  (see https://reference.digilentinc.com/reference/software/vivado/board-files),
-	+ The Risc-V toolchain
-	  (https://riscv.org/software-tools/)
-	+ Digilent Adept tools
-	  (http://store.digilentinc.com/digilent-adept-2-download-only/)
+        + Xilinx Vivado 2018.1
+        + Digilent board files
+          (see https://reference.digilentinc.com/reference/software/vivado/board-files),
+        + The Risc-V toolchain
+          (https://riscv.org/software-tools/)
+        + Digilent Adept tools
+          (http://store.digilentinc.com/digilent-adept-2-download-only/)
 
 Clone repository and submodule:
 
@@ -76,5 +76,3 @@ need to create a new bootrom.mmi file with "make mmi".
 ---
 January, 2018
 Thomas@Skibo.net
-
-
