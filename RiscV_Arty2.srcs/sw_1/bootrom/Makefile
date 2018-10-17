@@ -3,7 +3,7 @@ ifndef RISCV
 $(error RISCV must be set to point to RiscV toolchain)
 endif
 
-CROSS_COMPILE=$(RISCV)/bin/riscv64-unknown-elf-
+CROSS_COMPILE=$(RISCV)/bin/riscv64-unknown-linux-gnu-
 LD=$(CROSS_COMPILE)ld
 CC=$(CROSS_COMPILE)gcc
 AS=$(CROSS_COMPILE)as
