@@ -7,8 +7,7 @@ PROJNAME=RiscV_Arty2
 SRCDIR=$(PROJNAME).srcs
 SCRIPTDIR=$(SRCDIR)/scripts_1
 RTLSRC= \
-	$(SRCDIR)/design_1/hdl/design_1_wrapper.v	\
-	$(SRCDIR)/design_1/design_1.bd
+	$(SRCDIR)/design_1/hdl/design_1_wrapper.v
 RTLTOP=design_1_wrapper
 
 SWSRCS= \
