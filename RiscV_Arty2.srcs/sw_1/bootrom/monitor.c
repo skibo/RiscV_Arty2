@@ -29,6 +29,7 @@
 #include "io.h"
 #include "console.h"
 #include "sys.h"
+#include "ether.h"
 
 char linebuf[64];
 int memfault;
@@ -87,7 +88,7 @@ monitor(void) {
 
                 s = skipspace(linebuf);
                 cmd = *s++;
-        
+
                 switch (cmd) {
 
                 case 'r':
@@ -133,7 +134,37 @@ monitor(void) {
 
                         dumpmem(arg0, arg1);
                         break;
-                        
+
+                case 'M':
+                        /* MDIO read. */
+                        s = skipspace(s);
+                        arg0 = cons_gethex(&s, 8);
+
+                        data32 = ether_mdio_rd(1, arg0);
+
+                        cons_puts("MDIO ");
+                        cons_puthex(arg0, 8);
+                        cons_puts(": ");
+                        cons_puthex(data32, 8);
+                        cons_puts("\r\n");
+                        break;
+
+                case 'N':
+                        /* MDIO write. */
+                        s = skipspace(s);
+                        arg0 = cons_gethex(&s, 8);
+                        s = skipspace(s);
+                        arg1 = cons_gethex(&s, 8);
+
+                        cons_puts("MDIO ");
+                        cons_puthex(arg0, 8);
+                        cons_puts(" <- ");
+                        cons_puthex(arg1, 8);
+
+                        ether_mdio_wr(1, arg0, arg1);
+                        cons_puts("\r\n");
+                        break;
+
                 case 'q':
                         return;
 
@@ -143,6 +174,8 @@ monitor(void) {
                                   "   r <addr> -\t\tread location\r\n"
                                   "   w <addr> <data> -\twrite location\r\n"
                                   "   d <addr> <hexnum> -\tdump memory\r\n"
+                                  "   M <addr> -\t\tMDIO read\r\n"
+                                  "   N <addr> <data> -\tMDIO write\r\n"
                                   "   q -\t\t\tquit monitor.\n"
                                 );
                         break;
@@ -154,4 +187,3 @@ monitor(void) {
                 }
         }
 }
-
