@@ -94,6 +94,8 @@ monitor(void) {
                 case 'r':
                         /* Read word. */
                         s = skipspace(s);
+                        if (!*s)
+                                break;
                         arg0 = cons_gethex(&s, 8);
 
                         data32 = *(uint32_t *)arg0;
@@ -112,8 +114,12 @@ monitor(void) {
                 case 'w':
                         /* Write location. */
                         s = skipspace(s);
+                        if (!*s)
+                                break;
                         arg0 = cons_gethex(&s, 8);
                         s = skipspace(s);
+                        if (!*s)
+                                break;
                         arg1 = cons_gethex(&s, 8);
 
                         cons_puthex(arg0, 8);
@@ -128,8 +134,12 @@ monitor(void) {
                 case 'd':
                         /* Dump memory. */
                         s = skipspace(s);
+                        if (!*s)
+                                break;
                         arg0 = cons_gethex(&s, 8);
                         s = skipspace(s);
+                        if (!*s)
+                                break;
                         arg1 = cons_gethex(&s, 8);
 
                         dumpmem(arg0, arg1);
@@ -138,28 +148,34 @@ monitor(void) {
                 case 'M':
                         /* MDIO read. */
                         s = skipspace(s);
+                        if (!*s)
+                                break;
                         arg0 = cons_gethex(&s, 8);
 
                         data32 = ether_mdio_rd(1, arg0);
 
                         cons_puts("MDIO ");
-                        cons_puthex(arg0, 8);
+                        cons_puthex(arg0, 2);
                         cons_puts(": ");
-                        cons_puthex(data32, 8);
+                        cons_puthex(data32, 4);
                         cons_puts("\r\n");
                         break;
 
                 case 'N':
                         /* MDIO write. */
                         s = skipspace(s);
+                        if (!*s)
+                                break;
                         arg0 = cons_gethex(&s, 8);
                         s = skipspace(s);
+                        if (!*s)
+                                break;
                         arg1 = cons_gethex(&s, 8);
 
                         cons_puts("MDIO ");
-                        cons_puthex(arg0, 8);
+                        cons_puthex(arg0, 2);
                         cons_puts(" <- ");
-                        cons_puthex(arg1, 8);
+                        cons_puthex(arg1, 4);
 
                         ether_mdio_wr(1, arg0, arg1);
                         cons_puts("\r\n");
