@@ -198,6 +198,7 @@ monitor(void) {
                                   "   d <addr> <hexnum> -\tdump memory\r\n"
                                   "   M <addr> -\t\tMDIO read\r\n"
                                   "   N <addr> <data> -\tMDIO write\r\n"
+                                  "   p -\t\t\tping test.\n"
                                   "   q -\t\t\tquit monitor.\n"
                                 );
                         break;
