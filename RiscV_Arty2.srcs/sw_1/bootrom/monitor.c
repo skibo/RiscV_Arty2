@@ -34,6 +34,8 @@
 char linebuf[64];
 int memfault;
 
+extern void do_pingtest(void);
+
 static char *
 skipspace(char *s) {
         while (*s == ' ' || *s == '\t')
@@ -179,6 +181,10 @@ monitor(void) {
 
                         ether_mdio_wr(1, arg0, arg1);
                         cons_puts("\r\n");
+                        break;
+
+                case 'p':
+                        do_pingtest();
                         break;
 
                 case 'q':
