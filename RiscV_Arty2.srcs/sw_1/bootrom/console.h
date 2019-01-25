@@ -31,10 +31,10 @@
 
 extern void cons_putchar(char);
 extern void cons_puts(const char *);
-extern void cons_puthex(unsigned int, int);
+extern int cons_getchar(void);
+extern int cons_pollc(void);
+extern void cons_getline(char *, int);
 
-int cons_getchar(void);
-int cons_pollc(void);
-void cons_getline(char *, int);
-uint32_t cons_gethex(char **, int);
+extern int cons_printf(const char *, ...);
+
 #endif /* __CONSOLE_H__ */

@@ -37,32 +37,7 @@ static uint32_t ip_addr = 0xc0a80116; /* 192.168.1.22 */
                   (((x) >> 8) & 0x0000ff00) | (((x) >> 24) & 0x000000ff))
 #define htonl(x) ntohl(x)
 
-static void
-dumpbytes(uint32_t addr, int size)
-{
-        int i;
-        uint8_t d8;
-
-        while (size > 0) {
-                cons_puthex(addr, 8);
-                cons_puts(": ");
-                for (i = 0; i < 16; i++) {
-                        d8 = *(uint8_t *)addr;
-                        if (memfault) {
-                                memfault = 0;
-                                return;
-                        }
-                        cons_puthex(d8, 2);
-                        cons_putchar(' ');
-                        addr++;
-                        if (--size <= 0)
-                                break;
-                }
-                cons_puts("\n");
-                if (cons_pollc() >= 0)
-                        break;
-        }
-}
+extern void dumpmem(uint32_t, int);
 
 /* For receive packet data. */
 union {
@@ -124,7 +99,7 @@ input_arp(void)
         /* Check hardware and proto address type and length. */
         if (ntohs(pkt.arp.hwtype) != 1 || ntohs(pkt.arp.proto) != 0x800 ||
             pkt.arp.hwlen != 6 || pkt.arp.prlen != 4) {
-                cons_puts("Unhandled ARP hwtype or proto\r\n");
+                cons_puts("Unhandled ARP hwtype or proto\n");
                 return;
         }
 
@@ -151,7 +126,7 @@ input_arp(void)
         }
         pkt.arp.opcode = htons(2); /* reply */
 
-        cons_puts("Replying to ARP request.\r\n");
+        cons_puts("Replying to ARP request.\n");
 
         ether_tx(pkt.data, sizeof(pkt.arp) + 14);
 }
@@ -180,13 +155,13 @@ input_ip(void)
         /* Sanity check header length. */
         hlen = 4 * (pkt.ip.vers_hlen & 0xf);
         if (hlen < 20) {
-                cons_puts("Short IP header!\r\n");
+                cons_puts("Short IP header!\n");
                 return;
         }
 
         /* Check header checksum. */
         if (ipsum((uint16_t *)&pkt.ip, hlen / 2) != 0xffff) {
-                cons_puts("IP header checksum bad!\r\n");
+                cons_puts("IP header checksum bad!\n");
                 return;
         }
 
@@ -197,13 +172,13 @@ input_ip(void)
              pkt.ip.dstaddr[3] != (ip_addr & 0xff)) &&
             (pkt.ip.dstaddr[0] != 0xff || pkt.ip.dstaddr[1] != 0xff ||
              pkt.ip.dstaddr[2] != 0xff || pkt.ip.dstaddr[3] != 0xff)) {
-                cons_puts("IP Packet not addressed to me:\r\n");
+                cons_puts("IP Packet not addressed to me:\n");
                 return;
         }
 
         /* No fragments! */
         if ((ntohs(pkt.ip.frag) & 0x3fff) != 0) {
-                cons_puts("Dropping fragmented IP packet.\r\n");
+                cons_puts("Dropping fragmented IP packet.\n");
                 return;
         }
 
@@ -215,12 +190,12 @@ input_ip(void)
 
                 /* Check ICMP checksum. */
                 if (ipsum((uint16_t *)icmp, icmp_len / 2) != 0xffff) {
-                        cons_puts("ICMP checksum bad!\r\n");
+                        cons_puts("ICMP checksum bad!\n");
                         return;
                 }
 
                 if (icmp->type == 8 /* Echo Request */) {
-                        cons_puts("ICMP Echo Request.\r\n");
+                        cons_puts("ICMP Echo Request.\n");
 
                         /* Turn around packet as reply. */
                         for (i = 0; i < 6; i++) {
@@ -276,23 +251,16 @@ input_ip(void)
                         csum = (csum >> 16) + (csum & 0xffff);
 
                         if (csum != 0xffff) {
-                                cons_puts("UDP checksum bad!\r\n");
+                                cons_puts("UDP checksum bad!\n");
                                 return;
                         }
                 }
 
-                cons_puts("UDP Packet: src port = ");
-                cons_puthex(ntohs(udp->sport), 4);
-                cons_puts(" dst port = ");
-                cons_puthex(ntohs(udp->dport), 4);
-                cons_puts(" len (not incl hdr) = ");
-                cons_puthex(ntohs(udp->len) - 8, 4);
-                cons_puts("\r\n");
-        } else {
-                cons_puts("Unsupported IP proto: ");
-                cons_puthex(pkt.ip.proto, 2);
-                cons_puts("\r\n");
-        }
+                cons_printf("UDP Packet: "
+                            "src port = 0x%4x dst port = 0x%4x  len = 0x%x\n",
+                            udp->sport, udp->dport, udp->len);
+        } else
+                cons_printf("Unsupported IP proto: 0x%2x\n", pkt.ip.proto);
 }
 
 void
@@ -300,7 +268,7 @@ do_pingtest(void)
 {
         int i;
 
-        cons_puts("Ping test...\n\r");
+        cons_puts("Ping test...my address is 192.168.1.22\n");
 
         for (;;) {
                 /* Get packet. */
@@ -311,24 +279,20 @@ do_pingtest(void)
 
                 /* Output DST and SRC addresses. */
                 cons_puts("Dst: ");
-                for (i= 0; i < 6; i++) {
-                        cons_puthex(pkt.daddr[i], 2);
-                        cons_putchar(' ');
-                }
-                cons_puts("\n\rSrc: ");
-                for (i= 0; i < 6; i++) {
-                        cons_puthex(pkt.saddr[i], 2);
-                        cons_putchar(' ');
-                }
-                cons_puts("\n\r");
+                for (i= 0; i < 6; i++)
+                        cons_printf("%2x ", pkt.daddr[i]);
+                cons_puts("\nSrc: ");
+                for (i= 0; i < 6; i++)
+                        cons_printf("%2x ", pkt.saddr[i]);
+                cons_puts("\n");
 
                 /* Ethertype. */
                 switch (ntohs(pkt.ethertype)) {
                 case 0x800:
-                        cons_puts("IP Packet: \n\r");
+                        cons_puts("IP Packet: \n");
                         if ((pkt.ip.vers_hlen & 0xf0) != 0x40) {
-                                cons_puts("Bad vers_len\n\r");
-                                dumpbytes((uint32_t)&pkt, sizeof(pkt));
+                                cons_puts("Bad vers_len\n");
+                                dumpmem((uint32_t)&pkt, sizeof(pkt));
                         }
                         else
                                 input_ip();
@@ -338,10 +302,9 @@ do_pingtest(void)
                         input_arp();
                         break;
                 default:
-                        cons_puts("\n\rUnhandled Ethertype: ");
-                        cons_puthex(ntohs(pkt.ethertype), 4);
-                        cons_puts("\n\r");
-                        dumpbytes((uint32_t)&pkt, sizeof(pkt.data));
+                        cons_printf("\n\rUnhandled Ethertype: %4x\n",
+                                    ntohs(pkt.ethertype));
+                        dumpmem((uint32_t)&pkt, sizeof(pkt.data));
                 }
         }
 }

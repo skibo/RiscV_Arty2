@@ -23,6 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
+#include <stdarg.h>
 
 #include "types.h"
 #include "io.h"
@@ -34,20 +35,6 @@ cons_putchar(char c)
         while ((RD32(UART_STAT_REG) & UART_STAT_TX_FULL) != 0)
                 ;
         WR32(UART_TX_FIFO, c);
-}
-
-void
-cons_puthex(unsigned int x, int n)
-{
-        int y;
-
-        while (--n >= 0) {
-                y = (x >> (n << 2)) & 15;
-                if (y > 9)
-                        cons_putchar('A' - 10 + y);
-                else
-                        cons_putchar('0' + y);
-        }
 }
 
 void
@@ -115,27 +102,67 @@ cons_getline(char *s, int maxlen)
         }
 }
 
-static uint8_t
-cons_gethex1(char c) {
-        if (c >= '0' && c <= '9')
-                return c-'0';
-        else if (c >= 'a' && c <= 'f')
-                return c-'a'+10;
-        else if (c >= 'A' && c <= 'F')
-                return c-'A'+10;
-        else
-                return 0;
+static void
+cons_puthex(unsigned int x, int n)
+{
+        int i, nyb;
+
+        for (i = 7; i >= 0; i--) {
+                nyb = (x >> (i * 4)) & 0xf;
+                if (nyb == 0 && (n > i || i == 0))
+                        cons_putchar('0');
+                else if (nyb != 0) {
+                        if (nyb > 9)
+                                cons_putchar('A' - 10 + nyb);
+                        else
+                                cons_putchar('0' + nyb);
+                        n = 99;
+                }
+        }
 }
 
-uint32_t
-cons_gethex(char **s, int n) {
-        uint32_t data = 0;
-        while (n > 0 && ((**s >= '0' && **s <= '9') ||
-                         (**s >= 'a' && **s <= 'f') ||
-                         (**s >= 'A' && **s <= 'F'))) {
-                data = (data << 4) | (uint32_t) cons_gethex1(**s);
-                (*s)++;
-                n--;
+int
+cons_printf(const char *fmt, ...)
+{
+        const char *s = fmt;
+        va_list valist;
+        int w;
+
+        va_start(valist, fmt);
+
+        while (*s) {
+                if (*s == '%') {
+                        s++;
+
+                        w = 0;
+                        if (*s >= '0' && *s <= '9')
+                                w = *s++ - '0';
+
+                        if (*s == '\0')
+                                break;
+
+                        switch (*s) {
+                        case 'x':
+                        case 'X':
+                                cons_puthex(va_arg(valist, uint32_t), w);
+                                break;
+                        case 'c':
+                                cons_putchar(va_arg(valist, int));
+                                break;
+                        case 's':
+                                cons_puts(va_arg(valist, const char *));
+                                break;
+                        defualt:
+                                cons_putchar(*s);
+                                break;
+                        }
+                } else if (*s == '\n') {
+                        cons_putchar('\r');
+                        cons_putchar(*s);
+                } else
+                        cons_putchar(*s);
+                s++;
         }
-        return data;
+
+        va_end(valist);
 }

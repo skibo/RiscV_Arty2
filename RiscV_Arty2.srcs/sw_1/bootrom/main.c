@@ -75,11 +75,9 @@ main(void)
                         else if (c >= 0)
                                 break;
                 }
-                cons_puts("Buttons=");
-                cons_puthex(RD32(GPIO1_DATA0), 1);
-                cons_puts(" Switches=");
-                cons_puthex(RD32(GPIO1_DATA1), 1);
-                cons_puts("\n");
+                cons_printf("Buttons = %x  Switches = %x\n",
+                            RD32(GPIO1_DATA0),
+                            RD32(GPIO1_DATA1));
         }
 }
 

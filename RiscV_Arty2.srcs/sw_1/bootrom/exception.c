@@ -39,7 +39,7 @@ dumpregs(uint32_t *r)
         int i;
 
         for (i = 0; i < 32; i++) {
-                cons_puthex(r[i], 8);
+                cons_printf("%8x", r[i]);
                 if ((i & 3) == 3)
                         cons_puts("\n");
                 else
@@ -50,16 +50,10 @@ dumpregs(uint32_t *r)
 void
 exception(uint32_t mcause, uint32_t mstatus, uint32_t mepc, uint32_t mbadaddr)
 {
-        cons_puts("\nException!\nmcause=");
-        cons_puthex(mcause, 8);
-        cons_puts(" mstatus=");
-        cons_puthex(mstatus, 8);
-        cons_puts(" mepc=");
-        cons_puthex(mepc, 8);
-        cons_puts(" mbadaddr=");
-        cons_puthex(mbadaddr, 8);
-        cons_puts("\n\n");
-    
+        cons_printf("\nException!\n");
+        cons_printf("   mcause=%8x mstatus=%8x mepc=%8x mbadaddr=%8x\n",
+                    mcause, mstatus, mepc, mbadaddr);
+
         dumpregs(xregs);
 
         if (mcause == 5)
@@ -78,8 +72,6 @@ interrupt(void)
 {
         uint32_t a;
 
-        cons_puts("\nInterrupt!? mepc=");
         asm ("csrr %0, mepc" : "=r" (a));
-        cons_puthex(a, 8);
-        cons_puts("\n");
+        cons_printf("\nInterrupt!? mepc=%8x\n", a);
 }

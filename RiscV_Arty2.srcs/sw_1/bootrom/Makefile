@@ -14,8 +14,9 @@ ELFS=bootrom.elf
 BINS=bootrom_text.bin bootrom_data.bin
 LDSCRIPT=ldscript.riscv
 
+INCS=-I$(RISCV)/lib/gcc/riscv64-unknown-linux-gnu/8.1.0/include
 AFLAGS=-march=rv32i
-CFLAGS=-nostdinc -fno-builtin -march=rv32i -mabi=ilp32
+CFLAGS=-nostdinc -fno-builtin -march=rv32i -mabi=ilp32 $(INCS)
 LFLAGS=-melf32lriscv -static -T $(LDSCRIPT)
 LIBS=$(shell $(CC) $(CFLAGS) -print-libgcc-file-name)
 
