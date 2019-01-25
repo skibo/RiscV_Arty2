@@ -151,8 +151,7 @@ input_arp(void)
         }
         pkt.arp.opcode = htons(2); /* reply */
 
-        cons_puts("Replying with this:\r\n");
-        dumpbytes((uint32_t)&pkt, sizeof(pkt.arp) + 14);
+        cons_puts("Replying to ARP request.\r\n");
 
         ether_tx(pkt.data, sizeof(pkt.arp) + 14);
 }
@@ -202,6 +201,12 @@ input_ip(void)
                 return;
         }
 
+        /* No fragments! */
+        if ((ntohs(pkt.ip.frag) & 0x3fff) != 0) {
+                cons_puts("Dropping fragmented IP packet.\r\n");
+                return;
+        }
+
         /* Protocol? */
         if (pkt.ip.proto == 0x01) {
                 /* ICMP */
@@ -215,6 +220,8 @@ input_ip(void)
                 }
 
                 if (icmp->type == 8 /* Echo Request */) {
+                        cons_puts("ICMP Echo Request.\r\n");
+
                         /* Turn around packet as reply. */
                         for (i = 0; i < 6; i++) {
                                 pkt.daddr[i] = pkt.saddr[i];
@@ -247,16 +254,39 @@ input_ip(void)
                 udp = (struct udp_s *)pkt.ip.data;
 
                 /* Check UDP checksum. */
-                if (udp->csum != 0 &&
-                    ipsum((uint16_t *)udp, ntohs(udp->len) / 2) != 0xffff) {
-                        cons_puts("UDP checksum bad!\r\n");
-                        return;
+                if (udp->csum != 0) {
+                        uint32_t csum;
+                        struct {
+                                uint8_t srcip[4];
+                                uint8_t dstip[4];
+                                uint8_t zero;
+                                uint8_t proto;
+                                uint16_t udplen;
+                        } pseudo;
+
+                        for (i = 0; i < 4; i++) {
+                                pseudo.srcip[i] = pkt.ip.srcaddr[i];
+                                pseudo.dstip[i] = pkt.ip.dstaddr[i];
+                        }
+                        pseudo.zero = 0;
+                        pseudo.proto = 0x11;
+                        pseudo.udplen = udp->len;
+                        csum = ipsum((uint16_t *)&pseudo, sizeof(pseudo) / 2);
+                        csum += ipsum((uint16_t *)udp, ntohs(udp->len) / 2);
+                        csum = (csum >> 16) + (csum & 0xffff);
+
+                        if (csum != 0xffff) {
+                                cons_puts("UDP checksum bad!\r\n");
+                                return;
+                        }
                 }
 
                 cons_puts("UDP Packet: src port = ");
                 cons_puthex(ntohs(udp->sport), 4);
                 cons_puts(" dst port = ");
                 cons_puthex(ntohs(udp->dport), 4);
+                cons_puts(" len (not incl hdr) = ");
+                cons_puthex(ntohs(udp->len) - 8, 4);
                 cons_puts("\r\n");
         } else {
                 cons_puts("Unsupported IP proto: ");
@@ -290,25 +320,21 @@ do_pingtest(void)
                         cons_puthex(pkt.saddr[i], 2);
                         cons_putchar(' ');
                 }
+                cons_puts("\n\r");
 
                 /* Ethertype. */
                 switch (ntohs(pkt.ethertype)) {
                 case 0x800:
-                        cons_puts("\n\rIP Packet: \n\r");
+                        cons_puts("IP Packet: \n\r");
                         if ((pkt.ip.vers_hlen & 0xf0) != 0x40) {
                                 cons_puts("Bad vers_len\n\r");
                                 dumpbytes((uint32_t)&pkt, sizeof(pkt));
                         }
-                        else {
-                                dumpbytes((uint32_t)&pkt,
-                                          ntohs(pkt.ip.totlen) + 6);
+                        else
                                 input_ip();
-                        }
                         break;
                 case 0x806:
                         /* ARP. */
-                        cons_puts("\n\rARP Packet: \n\r");
-                        dumpbytes((uint32_t)&pkt.arp, sizeof(pkt.arp));
                         input_arp();
                         break;
                 default:
