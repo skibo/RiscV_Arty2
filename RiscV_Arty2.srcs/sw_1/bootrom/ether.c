@@ -57,6 +57,7 @@
 #define ETH_TX_PONG_LEN		(ETH_BASE + 0x0ff4)
 #define ETH_TX_PONG_CTRL	(ETH_BASE + 0x0ffc)
 #define ETH_RX_PING		(ETH_BASE + 0x1000)	/* rx "ping" buffer */
+
 #define ETH_RX_PING_CTRL	(ETH_BASE + 0x17fc)
 #define    ETH_RX_CTRL_IE		(1 << 3)	/* interrupt enable */
 #define    ETH_RX_CTRL_RDY		(1 << 0)	/* rx data available */
@@ -65,6 +66,10 @@
 
 #define RD32(a)		(*(volatile uint32_t *)(a))
 #define WR32(a, d)	(*(volatile uint32_t *)(a) = (d))
+
+uint8_t eth_addr[6] = {0x00, 0x00, 0x5e, 0x00, 0xfa, 0xce};
+static int tx_pingpong;
+static int rx_pingpong;
 
 void
 ether_setaddr(const uint8_t *addr)
@@ -80,42 +85,59 @@ ether_setaddr(const uint8_t *addr)
                 ((uint32_t)addr[2] << 16) | ((uint32_t)addr[3] << 24);
         buf[1] = addr[4] | ((uint32_t)addr[5] << 8);
 
+        for (i = 0; i < 6; i++)
+                eth_addr[i] = addr[i];
+
         /* Go! */
         WR32(ETH_TX_PING_CTRL, ETH_TX_CTRL_GO | ETH_TX_CTRL_PROG);
+
+        /* Wait for program complete. */
+        while ((RD32(ETH_TX_PING_CTRL) &
+                (ETH_TX_CTRL_GO | ETH_TX_CTRL_PROG)) != 0)
+                ;
 }
 
 void
 ether_tx(const uint32_t *data, int len)
 {
         int i;
-        uint32_t *buf = (uint32_t *)ETH_TX_PING;
+        uint32_t ctrlreg = tx_pingpong ? ETH_TX_PONG_CTRL : ETH_TX_PING_CTRL;
+        uint32_t *buf = (uint32_t *)(tx_pingpong ? ETH_TX_PONG : ETH_TX_PING);
 
         /* Wait for buf to be available. */
-        while ((RD32(ETH_TX_PING_CTRL) & ETH_TX_CTRL_GO) != 0)
+        while ((RD32(ctrlreg) & ETH_TX_CTRL_GO) != 0)
                 ;
 
         /* Fill buf. */
         for (i = 0; i < len; i += 4)
                 *buf++ = *data++;
 
+        /* Set length. */
+        WR32(tx_pingpong ? ETH_TX_PONG_LEN : ETH_TX_PING_LEN, len);
+
         /* Go! */
-        WR32(ETH_TX_PING_CTRL, ETH_TX_CTRL_GO);
+        WR32(ctrlreg, ETH_TX_CTRL_GO);
+
+        tx_pingpong = !tx_pingpong;
 }
 
 int
 ether_rx(uint32_t *data, int maxlen)
 {
         int i;
-        uint32_t *buf = (uint32_t *)ETH_RX_PING;
+        uint32_t ctrlreg = rx_pingpong ? ETH_RX_PONG_CTRL : ETH_RX_PING_CTRL;
+        uint32_t *buf = (uint32_t *)(rx_pingpong ? ETH_RX_PONG : ETH_RX_PING);
 
-        if ((RD32(ETH_RX_PING_CTRL) & ETH_RX_CTRL_RDY) != 0) {
-                for (i = 0; i < maxlen; i += 4)
-                        *data++ = *buf++;
-                WR32(ETH_RX_PING_CTRL, 0);
-                return maxlen;
-        }
-        else
+        if ((RD32(ctrlreg) & ETH_RX_CTRL_RDY) == 0)
                 return 0;
+
+        for (i = 0; i < maxlen; i += 4)
+                *data++ = *buf++;
+
+        WR32(ctrlreg, 0);
+        rx_pingpong = !rx_pingpong;
+
+        return maxlen;
 }
 
 int

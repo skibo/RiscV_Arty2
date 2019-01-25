@@ -27,6 +27,8 @@
 #ifndef __ETHER_H__
 #define __ETHER_H__
 
+extern uint8_t eth_addr[];
+
 void ether_setaddr(const uint8_t *addr);
 int ether_mdio_wr(uint8_t phy, uint8_t reg, uint16_t data);
 int ether_mdio_rd(uint8_t phy, uint8_t reg);
