@@ -20,7 +20,7 @@ SECTIONS
 	}
         _datai = .;
 
-        . = 0x3000;
+        . = 0x6000;
 	_data = .;
 	.data :
 	{

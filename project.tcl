@@ -377,7 +377,7 @@ proc cr_bd_design_1 { parentCell } {
   set riscv_too_0 [ create_bd_cell -type ip -vlnv skibo.net:user:riscv_too:0.1 riscv_too_0 ]
   set_property -dict [ list \
    CONFIG.MEMSIZE {32768} \
-   CONFIG.ROMSIZE {12288} \
+   CONFIG.ROMSIZE {24576} \
  ] $riscv_too_0
 
   # Create instance: riscv_too_0_axi_periph, and set properties

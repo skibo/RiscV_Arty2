@@ -29,7 +29,7 @@
 	.global _start
 _start:
         /* Stack at end of memory for now. */
-        li      sp, 0x3ff0
+        li      sp, 0x7ff0
 
         /* Zero out BSS. */
         la      a0, __bss_start
