@@ -1,8 +1,8 @@
 //Copyright 1986-2018 Xilinx, Inc. All Rights Reserved.
 //--------------------------------------------------------------------------------
 //Tool Version: Vivado v.2018.2 (lin64) Build 2258646 Thu Jun 14 20:02:38 MDT 2018
-//Date        : Mon Jan 21 08:12:08 2019
-//Host        : robleda running 64-bit Ubuntu 16.04.5 LTS
+//Date        : Sat Feb  2 11:26:20 2019
+//Host        : robleda running 64-bit Ubuntu 18.04.1 LTS
 //Command     : generate_target design_1_wrapper.bd
 //Design      : design_1_wrapper
 //Purpose     : IP block netlist
@@ -29,6 +29,8 @@ module design_1_wrapper
     reset,
     rgb_led_tri_io,
     sys_clock,
+    uart1_rx,
+    uart1_tx,
     usb_uart_rxd,
     usb_uart_txd);
   input [3:0]dip_switches_4bits_tri_i;
@@ -50,6 +52,8 @@ module design_1_wrapper
   input reset;
   inout [11:0]rgb_led_tri_io;
   input sys_clock;
+  input uart1_rx;
+  output uart1_tx;
   input usb_uart_rxd;
   output usb_uart_txd;
 
@@ -137,6 +141,8 @@ module design_1_wrapper
   wire [8:8]rgb_led_tri_t_8;
   wire [9:9]rgb_led_tri_t_9;
   wire sys_clock;
+  wire uart1_rx;
+  wire uart1_tx;
   wire usb_uart_rxd;
   wire usb_uart_txd;
 
@@ -166,6 +172,8 @@ module design_1_wrapper
         .rgb_led_tri_o({rgb_led_tri_o_11,rgb_led_tri_o_10,rgb_led_tri_o_9,rgb_led_tri_o_8,rgb_led_tri_o_7,rgb_led_tri_o_6,rgb_led_tri_o_5,rgb_led_tri_o_4,rgb_led_tri_o_3,rgb_led_tri_o_2,rgb_led_tri_o_1,rgb_led_tri_o_0}),
         .rgb_led_tri_t({rgb_led_tri_t_11,rgb_led_tri_t_10,rgb_led_tri_t_9,rgb_led_tri_t_8,rgb_led_tri_t_7,rgb_led_tri_t_6,rgb_led_tri_t_5,rgb_led_tri_t_4,rgb_led_tri_t_3,rgb_led_tri_t_2,rgb_led_tri_t_1,rgb_led_tri_t_0}),
         .sys_clock(sys_clock),
+        .uart1_rx(uart1_rx),
+        .uart1_tx(uart1_tx),
         .usb_uart_rxd(usb_uart_rxd),
         .usb_uart_txd(usb_uart_txd));
   IOBUF eth_mdio_mdc_mdio_iobuf
