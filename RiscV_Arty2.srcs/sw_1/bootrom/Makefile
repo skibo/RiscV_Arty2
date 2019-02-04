@@ -3,13 +3,14 @@ ifndef RISCV
 $(error RISCV must be set to point to RiscV toolchain)
 endif
 
-CROSS_COMPILE=$(RISCV)/bin/riscv64-unknown-linux-gnu-
+CROSS_COMPILE=$(RISCV)/bin/riscv32-unknown-elf-
 LD=$(CROSS_COMPILE)ld
 CC=$(CROSS_COMPILE)gcc
 AS=$(CROSS_COMPILE)as
 BIN2HEX=/usr/bin/hexdump -v -e '/4 "%08X\n"'
 
-OBJS=vect.o start.o exception.o main.o console.o ping.o ether.o monitor.o
+OBJS=vect.o start.o exception.o main.o console.o ping.o ether.o blinky.o \
+	monitor.o
 ELFS=bootrom.elf
 BINS=bootrom_text.bin bootrom_data.bin
 LDSCRIPT=ldscript.riscv
