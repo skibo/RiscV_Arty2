@@ -27,6 +27,11 @@
 #ifndef __IO_H__
 #define __IO_H__
 
+#define MTIME_REG	0x00020000
+#define MTIMEH_REG	0x00020004
+#define MTIMECMP_REG	0x00020008
+#define MTIMECMPH_REG	0x0002000c
+
 #define GPIO0_BASE	0x40000000
 #define    GPIO0_DATA0		(GPIO0_BASE)
 #define    GPIO0_TRI0		(GPIO0_BASE + 4)
@@ -38,10 +43,11 @@
 #define    GPIO1_DATA1		(GPIO1_BASE + 8)
 #define    GPIO1_TRI1		(GPIO1_BASE + 12)
 
-#define UART_BASE	0x40600000
-#define UART_RX_FIFO	(UART_BASE + 0)	/* Registers for AXI UART Lite. */
-#define UART_TX_FIFO	(UART_BASE + 4)	/* See DS741 from Xilinx. */
-#define UART_STAT_REG	(UART_BASE + 8)
+#define UART0_BASE	0x40600000
+#define UART1_BASE	0x40610000
+#define UART_RX_FIFO	0		/* Registers for AXI UART Lite. */
+#define UART_TX_FIFO	4		/* See DS741 from Xilinx. */
+#define UART_STAT_REG	8
 #define    UART_STAT_RX_VALID	(1 << 0)
 #define    UART_STAT_RX_FULL	(1 << 1)
 #define    UART_STAT_TX_EMPTY	(1 << 2)
@@ -50,12 +56,13 @@
 #define    UART_STAT_OVERRUN	(1 << 5)
 #define    UART_STAT_FRAME_ERR	(1 << 6)
 #define    UART_STAT_PARITY_ERR	(1 << 7)
-#define UART_CTRL_REG	(UART_BASE + 12)
+#define UART_CTRL_REG	12
 #define    UART_CTRL_RST_TX	(1 << 0)
 #define    UART_CTRL_RST_RX	(1 << 1)
 #define    UART_CTRL_INTR_EN	(1 << 4)
 
 #define ETH_BASE	0x40e00000
+#define INTC_BASE	0x41200000
 
 #define RD32(a)		(*(volatile uint32_t *)(a))
 #define WR32(a, d)	(*(volatile uint32_t *)(a) = (d))

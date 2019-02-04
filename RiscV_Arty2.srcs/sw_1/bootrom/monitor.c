@@ -29,12 +29,13 @@
 #include "io.h"
 #include "console.h"
 #include "sys.h"
-#include "ether.h"
 
 char linebuf[64];
 int memfault;
 
 extern void do_pingtest(void);
+extern void blink_start(void);
+extern void blink_toggle(void);
 
 static char *
 skipspace(char *s) {
@@ -43,6 +44,7 @@ skipspace(char *s) {
         return s;
 }
 
+/* Decode a single hex character. */
 static uint8_t
 gethex1(char c) {
         if (c >= '0' && c <= '9')
@@ -55,6 +57,7 @@ gethex1(char c) {
                 return 0;
 }
 
+/* Decode a hex number up to n characters long. */
 static uint32_t
 gethex(char **s, int n) {
         uint32_t data = 0;
@@ -68,17 +71,17 @@ gethex(char **s, int n) {
         return data;
 }
 
+/* Dump memory in bytes. */
 void
-dumpmem(uint32_t addr, int size)
+dumpbytes(uint32_t addr, int len)
 {
         int i;
         uint8_t d8;
 
-        while (size > 0) {
+        while (len > 0) {
                 cons_printf("%8x: ", addr);
-                if ((addr & 15) != 0)
-                        for (i = (addr & 15); i < 16; i++)
-                                cons_puts("   ");
+                for (i = (addr & 15); i > 0; i--)
+                        cons_puts("   ");
                 do {
                         d8 = *(uint8_t *)addr;
                         if (memfault) {
@@ -88,8 +91,39 @@ dumpmem(uint32_t addr, int size)
                         }
                         cons_printf("%2x ", d8);
                         addr++;
-                        size--;
-                } while (size > 0 && (addr & 15) != 0);
+                        len--;
+                } while (len > 0 && (addr & 15) != 0);
+                cons_puts("\n");
+                if (cons_pollc() >= 0)
+                        break;
+        }
+}
+
+/* Dump memory in 32-bit words. */
+void
+dumpmem(uint32_t addr, int len)
+{
+        int i;
+        uint32_t d32;
+
+        addr &= ~3;
+        len >>= 2;
+
+        while (len > 0) {
+                cons_printf("%8x: ", addr);
+                for (i = (addr & 15); i > 0; i -= 4)
+                        cons_puts("         ");
+                do {
+                        d32 = *(uint32_t *)addr;
+                        if (memfault) {
+                                memfault = 0;
+                                cons_puts("fault!\n");
+                                return;
+                        }
+                        cons_printf("%8x ", d32);
+                        addr += 4;
+                        len--;
+                } while (len > 0 && (addr & 15) != 0);
                 cons_puts("\n");
                 if (cons_pollc() >= 0)
                         break;
@@ -110,8 +144,10 @@ monitor(void) {
         linebuf[0] = '\0';
         memfault = 0;
 
+        blink_start();
+
         for (;;) {
-                cons_puts("> ");
+                cons_puts(": ");
                 cons_getline(linebuf, sizeof(linebuf));
 
                 s = skipspace(linebuf);
@@ -157,68 +193,48 @@ monitor(void) {
                         break;
 
                 case 'd':
+                case 'D':
                         /* Dump memory. */
                         s = skipspace(s);
-                        if (!*s)
-                                break;
-                        arg0 = gethex(&s, 8);
-                        s = skipspace(s);
-                        if (!*s)
-                                break;
-                        arg1 = gethex(&s, 8);
+                        if (*s) {
+                                arg0 = gethex(&s, 8);
+                                s = skipspace(s);
+                        }
+                        if (*s)
+                                arg1 = gethex(&s, 8);
 
-                        dumpmem(arg0, arg1);
-                        break;
-
-                case 'M':
-                        /* MDIO read. */
-                        s = skipspace(s);
-                        if (!*s)
-                                break;
-                        arg0 = gethex(&s, 8);
-
-                        data32 = ether_mdio_rd(1, arg0);
-
-                        cons_printf("MDIO %2x: %4x\n", arg0, data32);
-                        break;
-
-                case 'N':
-                        /* MDIO write. */
-                        s = skipspace(s);
-                        if (!*s)
-                                break;
-                        arg0 = gethex(&s, 8);
-                        s = skipspace(s);
-                        if (!*s)
-                                break;
-                        arg1 = gethex(&s, 8);
-
-                        cons_printf("MDIO %2x <- %4x\n", arg0, arg1);
-                        ether_mdio_wr(1, arg0, arg1);
+                        if (cmd == 'D')
+                                dumpbytes(arg0, arg1);
+                        else
+                                dumpmem(arg0, arg1);
+                        arg0 += arg1;
                         break;
 
                 case 'p':
                         do_pingtest();
                         break;
 
-                case 'q':
-                        return;
+                case 'b':
+                        blink_toggle();
+                        break;
+
+                case '\0':
+                        break;
 
                 case 'h':
                 case '?':
                         cons_puts("Commands:\n"
                                   "   r <addr> -\t\tread location\n"
                                   "   w <addr> <data> -\twrite location\n"
-                                  "   d <addr> <num> -\tdump memory\n"
-                                  "   M <addr> -\t\tMDIO read\n"
-                                  "   N <addr> <data> -\tMDIO write\n"
+                                  "   d <addr> <len> -\tdump memory\n"
+                                  "   D <addr> <len> -\tdump bytes\n"
                                   "   p -\t\t\tping test.\n"
-                                  "   q -\t\t\tquit monitor.\n"
+                                  "   b -\t\t\ttoggle blinking LEDs.\n"
                                 );
                         break;
 
                 default:
-                        cons_printf("Uknown command: %c.  "
+                        cons_printf("Unknown command: '%c'.  "
                                     "Type h for help\n", cmd);
                 }
         }

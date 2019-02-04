@@ -33,13 +33,28 @@ int memfault;
 uint32_t xstack[64];
 uint32_t xregs[32];
 
+uint32_t istack[64];
+uint32_t iregs[32];
+
+extern void timer_intr(void);
+
 static void
 dumpregs(uint32_t *r)
 {
         int i;
+        static char *rnames[] = {
+                "x0/z  ", "x1/ra ", "x2/sp ", "x3/gp ",
+                "x4/tp ", "x5/t0 ", "x6/t1 ", "x7/t2 ",
+                "x8/s0 ", "x9/s1 ", "x10/a0", "x11/a1",
+                "x12/a2", "x13/a3", "x14/a4", "x15/a5",
+                "x16/a6", "x17/a7", "x18/s2", "x19/s3",
+                "x20/s4", "x21/s5", "x22/s6", "x23/s7",
+                "x24/s8", "x25/s9", "x26/sA", "x27/sB",
+                "x28/t3", "x29/t4", "x30/t5", "x31/t6"
+        };
 
         for (i = 0; i < 32; i++) {
-                cons_printf("%8x", r[i]);
+                cons_printf("%s=%8x", rnames[i], r[i]);
                 if ((i & 3) == 3)
                         cons_puts("\n");
                 else
@@ -61,17 +76,19 @@ exception(uint32_t mcause, uint32_t mstatus, uint32_t mepc, uint32_t mbadaddr)
 
         /* Restart after offending instruction. */
         mepc += 4;
-        asm("csrw mepc, %0" : : "r"(mepc));
+        asm volatile ("csrw mepc, %0" : : "r"(mepc));
 }
-
-uint32_t istack[64];
-uint32_t iregs[32];
 
 void
 interrupt(void)
 {
-        uint32_t a;
+        uint32_t mip, mie;
 
-        asm ("csrr %0, mepc" : "=r" (a));
-        cons_printf("\nInterrupt!? mepc=%8x\n", a);
+        asm volatile ("csrr %0, mip" : "=r" (mip));
+        asm volatile ("csrr %0, mie" : "=r" (mie));
+
+        if ((mip & mie & (1 << 7)) != 0) {
+                /* Timer interrupt. */
+                timer_intr();
+        }
 }

@@ -32,9 +32,9 @@
 void
 cons_putchar(char c)
 {
-        while ((RD32(UART_STAT_REG) & UART_STAT_TX_FULL) != 0)
+        while ((RD32(UART0_BASE + UART_STAT_REG) & UART_STAT_TX_FULL) != 0)
                 ;
-        WR32(UART_TX_FIFO, c);
+        WR32(UART0_BASE + UART_TX_FIFO, c);
 }
 
 void
@@ -47,18 +47,17 @@ cons_puts(const char *s)
         }
 }
 
-/* Returns -1 if there is no read data because that is what
- * the UART_DATA_REG does.
- */
+/* Return input character if available.  Return -1 if there is no read data. */
 int
 cons_pollc(void)
 {
-        if ((RD32(UART_STAT_REG) & UART_STAT_RX_VALID) != 0)
-                return RD32(UART_RX_FIFO);
+        if ((RD32(UART0_BASE + UART_STAT_REG) & UART_STAT_RX_VALID) != 0)
+                return RD32(UART0_BASE + UART_RX_FIFO);
         else
                 return -1;
 }
 
+/* Wait for input character and return it. */
 int
 cons_getchar(void)
 {
@@ -70,6 +69,7 @@ cons_getchar(void)
         return c;
 }
 
+/* Crude getline with single line recall. */
 void
 cons_getline(char *s, int maxlen)
 {
@@ -121,6 +121,34 @@ cons_puthex(unsigned int x, int n)
         }
 }
 
+static void
+cons_putdec(int x)
+{
+        int d = 1000000000;
+        int e, lead0 = 0;
+
+        if (x == 0) {
+                cons_putchar('0');
+                return;
+        } else if (x < 0) {
+                cons_putchar('-');
+                x = -x;
+        }
+
+        while (d > 0) {
+                e = x / d;
+                if (e == 0 && lead0)
+                        cons_putchar('0');
+                else if (e > 0) {
+                        cons_putchar('0' + e);
+                        lead0++;
+                        x -= e * d;
+                }
+                d /= 10;
+        }
+}
+
+/* Crude implementation of printf(). */
 int
 cons_printf(const char *fmt, ...)
 {
@@ -145,6 +173,9 @@ cons_printf(const char *fmt, ...)
                         case 'x':
                         case 'X':
                                 cons_puthex(va_arg(valist, uint32_t), w);
+                                break;
+                        case 'd':
+                                cons_putdec(va_arg(valist, int));
                                 break;
                         case 'c':
                                 cons_putchar(va_arg(valist, int));

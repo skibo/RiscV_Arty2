@@ -37,7 +37,7 @@ static uint32_t ip_addr = 0xc0a80116; /* 192.168.1.22 */
                   (((x) >> 8) & 0x0000ff00) | (((x) >> 24) & 0x000000ff))
 #define htonl(x) ntohl(x)
 
-extern void dumpmem(uint32_t, int);
+extern void dumpbytes(uint32_t, int);
 
 /* For receive packet data. */
 union {
@@ -110,6 +110,9 @@ input_arp(void)
         /* Looking for us? */
         for (i = 0; i < 4; i++)
                 reqip = (reqip << 8) | pkt.arp.dstip[i];
+        cons_printf("ARP Request for %d.%d.%d.%d\n",
+                    pkt.arp.dstip[0], pkt.arp.dstip[1],
+                    pkt.arp.dstip[2], pkt.arp.dstip[3]);
         if (reqip != ip_addr)
                 return;
 
@@ -172,7 +175,10 @@ input_ip(void)
              pkt.ip.dstaddr[3] != (ip_addr & 0xff)) &&
             (pkt.ip.dstaddr[0] != 0xff || pkt.ip.dstaddr[1] != 0xff ||
              pkt.ip.dstaddr[2] != 0xff || pkt.ip.dstaddr[3] != 0xff)) {
-                cons_puts("IP Packet not addressed to me:\n");
+                cons_puts("IP Packet not addressed to me: ");
+                cons_printf("%d.%d.%d.%d\n", pkt.ip.dstaddr[0],
+                            pkt.ip.dstaddr[1], pkt.ip.dstaddr[2],
+                            pkt.ip.dstaddr[3]);
                 return;
         }
 
@@ -195,7 +201,10 @@ input_ip(void)
                 }
 
                 if (icmp->type == 8 /* Echo Request */) {
-                        cons_puts("ICMP Echo Request.\n");
+                        cons_puts("ICMP Echo Request: from ");
+                        cons_printf("%d.%d.%d.%d\n", pkt.ip.srcaddr[0],
+                                    pkt.ip.srcaddr[1], pkt.ip.srcaddr[2],
+                                    pkt.ip.srcaddr[3]);
 
                         /* Turn around packet as reply. */
                         for (i = 0; i < 6; i++) {
@@ -257,8 +266,9 @@ input_ip(void)
                 }
 
                 cons_printf("UDP Packet: "
-                            "src port = 0x%4x dst port = 0x%4x  len = 0x%x\n",
-                            udp->sport, udp->dport, udp->len);
+                            "src port = %d dst port = %d  len = %d\n",
+                            ntohs(udp->sport), ntohs(udp->dport),
+                            ntohs(udp->len));
         } else
                 cons_printf("Unsupported IP proto: 0x%2x\n", pkt.ip.proto);
 }
@@ -269,6 +279,7 @@ do_pingtest(void)
         int i;
 
         cons_puts("Ping test...my address is 192.168.1.22\n");
+        cons_puts("Hit any key to return to monitor.\n");
 
         for (;;) {
                 /* Get packet. */
@@ -292,7 +303,7 @@ do_pingtest(void)
                         cons_puts("IP Packet: \n");
                         if ((pkt.ip.vers_hlen & 0xf0) != 0x40) {
                                 cons_puts("Bad vers_len\n");
-                                dumpmem((uint32_t)&pkt, sizeof(pkt));
+                                dumpbytes((uint32_t)&pkt, sizeof(pkt));
                         }
                         else
                                 input_ip();
@@ -304,7 +315,7 @@ do_pingtest(void)
                 default:
                         cons_printf("\n\rUnhandled Ethertype: %4x\n",
                                     ntohs(pkt.ethertype));
-                        dumpmem((uint32_t)&pkt, sizeof(pkt.data));
+                        dumpbytes((uint32_t)&pkt, sizeof(pkt.data));
                 }
         }
 }

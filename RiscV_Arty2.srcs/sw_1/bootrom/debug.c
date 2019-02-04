@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2018 Thomas Skibo.
+ * Copyright (c) 2019 Thomas Skibo.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,32 +24,54 @@
  * SUCH DAMAGE.
  */
 
-
-/*
- * main.c
- */
-
 #include "types.h"
 #include "io.h"
-#include "console.h"
-#include "sys.h"
 
-/* This is here so that we'll have at least one piece of initialized data. */
-char say_hi[] = "\n\nHello, Arty!\n\n";
+static void
+dbg_putchar(char c)
+{
+        while ((RD32(UART1_BASE + UART_STAT_REG) & UART_STAT_TX_FULL) != 0)
+                ;
+        WR32(UART1_BASE + UART_TX_FIFO, c);
+}
+
+static void
+dbg_puts(const char *s)
+{
+        while (*s) {
+                if (*s == '\n')
+                        dbg_putchar('\r');
+                dbg_putchar(*s++);
+        }
+}
+
+/* Returns -1 if there is no read data because that is what
+ * the UART_DATA_REG does.
+ */
+static int
+dbg_pollc(void)
+{
+        if ((RD32(UART1_BASE + UART_STAT_REG) & UART_STAT_RX_VALID) != 0)
+                return RD32(UART1_BASE + UART_RX_FIFO);
+        else
+                return -1;
+}
+
+static int
+dbg_getchar(void)
+{
+        int c;
+
+        while ((c = dbg_pollc()) < 0)
+                ;
+
+        return c;
+}
 
 void
-main(void)
+dbg_init(void)
 {
-
-        /* Enable LED tri-state outputs. */
-        WR32(GPIO0_TRI0, 0);
-        WR32(GPIO0_TRI1, 0);
-
-        cons_puts(say_hi);
-
-        cons_printf("Date compiled: %s\n", __DATE__);
-        cons_printf("Time compiled: %s\n", __TIME__);
-        cons_puts("\nReady!\n");
-
-        monitor();
+        dbg_puts("Hello, UART1 and debugger!\nPress any key...");
+        (void)dbg_getchar();
+        dbg_puts("\n");
 }
