@@ -202,6 +202,7 @@ intr_vect:
         la      sp, istack + 0xf0
 
         /* Call handler. */
+        csrr    a0, mcause
         jal     interrupt
 
         la      t0, iregs

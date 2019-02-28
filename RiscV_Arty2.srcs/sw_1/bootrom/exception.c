@@ -37,6 +37,7 @@ uint32_t istack[64];
 uint32_t iregs[32];
 
 extern void timer_intr(void);
+extern void dbg_exception(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t []);
 
 static void
 dumpregs(uint32_t *r)
@@ -65,22 +66,28 @@ dumpregs(uint32_t *r)
 void
 exception(uint32_t mcause, uint32_t mstatus, uint32_t mepc, uint32_t mbadaddr)
 {
+        /* Catch memory faults from monitor. */
+        if (memfault < 0 && mcause >= 4 && mcause <= 7) {
+                memfault = mcause;
+
+                /* Restart after offending instruction. */
+                mepc += 4;
+                asm volatile ("csrw mepc, %0" : : "r"(mepc));
+
+                return;
+        }
+
         cons_printf("\nException!\n");
         cons_printf("   mcause=%8x mstatus=%8x mepc=%8x mbadaddr=%8x\n",
                     mcause, mstatus, mepc, mbadaddr);
 
         dumpregs(xregs);
 
-        if (mcause == 5)
-                memfault++;
-
-        /* Restart after offending instruction. */
-        mepc += 4;
-        asm volatile ("csrw mepc, %0" : : "r"(mepc));
+        dbg_exception(mcause, mstatus, mepc, mbadaddr, xregs);
 }
 
 void
-interrupt(void)
+interrupt(uint32_t mcause)
 {
         uint32_t mip, mie;
 

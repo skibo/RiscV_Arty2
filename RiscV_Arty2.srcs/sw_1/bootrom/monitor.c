@@ -83,12 +83,14 @@ dumpbytes(uint32_t addr, int len)
                 for (i = (addr & 15); i > 0; i--)
                         cons_puts("   ");
                 do {
+                        memfault = -1;
                         d8 = *(uint8_t *)addr;
-                        if (memfault) {
+                        if (memfault > 0) {
                                 memfault = 0;
                                 cons_puts("fault!\n");
                                 return;
                         }
+                        memfault = 0;
                         cons_printf("%2x ", d8);
                         addr++;
                         len--;
@@ -114,12 +116,14 @@ dumpmem(uint32_t addr, int len)
                 for (i = (addr & 15); i > 0; i -= 4)
                         cons_puts("         ");
                 do {
+                        memfault = -1;
                         d32 = *(uint32_t *)addr;
-                        if (memfault) {
+                        if (memfault > 0) {
                                 memfault = 0;
                                 cons_puts("fault!\n");
                                 return;
                         }
+                        memfault = 0;
                         cons_printf("%8x ", d32);
                         addr += 4;
                         len--;
@@ -142,7 +146,6 @@ monitor(void) {
         cons_puts("\nMonitor:\n");
 
         linebuf[0] = '\0';
-        memfault = 0;
 
         blink_start();
 
@@ -162,12 +165,14 @@ monitor(void) {
                                 break;
                         arg0 = gethex(&s, 8);
 
+                        memfault = -1;
                         data32 = *(uint32_t *)arg0;
-
-                        if (memfault) {
+                        if (memfault > 0) {
                                 memfault = 0;
+                                cons_puts("fault!\n");
                                 break;
                         }
+                        memfault = 0;
 
                         cons_printf("%8x: %8x\n", arg0, data32);
                         break;
@@ -184,11 +189,14 @@ monitor(void) {
                         arg1 = gethex(&s, 8);
 
                         cons_printf("%8x <- %8x", arg0, arg1);
+                        memfault = -1;
                         *((uint32_t *)arg0) = arg1;
-                        if (memfault) {
-                                cons_puts(" fault! ");
+                        if (memfault > 0) {
                                 memfault = 0;
+                                cons_puts(" fault!\n");
+                                break;
                         }
+                        memfault = 0;
                         cons_puts("\n");
                         break;
 
@@ -218,6 +226,10 @@ monitor(void) {
                         blink_toggle();
                         break;
 
+                case 'B':
+                        asm volatile ("ebreak");
+                        break;
+
                 case '\0':
                         break;
 
@@ -230,6 +242,7 @@ monitor(void) {
                                   "   D <addr> <len> -\tdump bytes\n"
                                   "   p -\t\t\tping test.\n"
                                   "   b -\t\t\ttoggle blinking LEDs.\n"
+                                  "   B -\t\t\thit breakpoint.\n"
                                 );
                         break;
 
