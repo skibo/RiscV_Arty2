@@ -116,6 +116,8 @@ dbg_gethex32(const char **ps)
         x |= dbg_gethex(ps, 2) << 8;
         x |= dbg_gethex(ps, 2) << 16;
         x |= dbg_gethex(ps, 2) << 24;
+
+        return (x);
 }
 
 /* Receive a serial protocol packet. */
