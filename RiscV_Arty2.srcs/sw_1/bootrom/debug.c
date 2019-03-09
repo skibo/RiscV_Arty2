@@ -32,6 +32,11 @@
 #include "console.h"
 #endif
 
+#define SIGINT		2
+#define SIGILL		4
+#define SIGTRAP		5
+#define SIGSEGV         11
+
 static char dbgpkt[384];
 
 static void
@@ -97,6 +102,8 @@ dbg_gethex(const char **ps, int n)
         int nyb;
 
         while (n-- > 0) {
+                if (**ps == '\0')
+                        break;
                 nyb = dbg_hextoi(*(*ps)++);
                 if (nyb < 0)
                         break;
@@ -166,7 +173,7 @@ dbg_getpkt(void)
                         continue;
                 }
 
-                dbgpkt[i] = 0;
+                dbgpkt[i] = '\0';
                 dbg_putchar('+');
                 break;
         }
@@ -383,10 +390,18 @@ dbg_setmem(const char *s)
         dbg_putpkt("OK");
 }
 
+static void
+dbg_cont_step(const char *s, uint32_t *pmepc)
+{
+        char cmd;
+        uint32_t sig;
 
-#define SIGINT	2
-#define SIGSEGV 11
-#define SIGSTOP 19
+        cmd = *s++;
+        if (cmd == 'C' || cmd == 'S')
+                sig = dbg_gethex(&s, 17);
+        if (*s != '\0')
+                *pmepc = dbg_gethex(&s, 17);
+}
 
 static int signal;
 
@@ -406,12 +421,30 @@ void
 dbg_exception(uint32_t mcause, uint32_t mstatus, uint32_t mepc,
               uint32_t mbadaddr, uint32_t xregs[])
 {
-        int x;
-        char *s;
 
-        /* XXX: allow us to return. */
-        mepc += 4;
-        signal = SIGINT;
+        switch (mcause) {
+        case 0:	 /* Instruction address misaligned */
+        case 1:	 /* Instruction access fault */
+        case 4:  /* Load address misaligned */
+        case 5:  /* Load access fault */
+        case 6:  /* Store / AMO address misaligned */
+        case 7:  /* Store / AMO access fault */
+        case 12: /* Instruction page fault */
+        case 13: /* Load page fault */
+        case 15: /* Store / AMO page fault */
+                signal = SIGSEGV;
+                break;
+        case 2:  /* Illegal instruction */
+                signal = SIGILL;
+                break;
+        case 3: /* Breakpoint */
+                if (mepc == (uint32_t)ebreak)
+                        mepc += 4;
+                /* FALLTHROUGH */
+        default:
+                signal = SIGTRAP;
+                break;
+        }
 
         /* Respond with SIGINT signal. */
         dbg_putsig();
@@ -439,8 +472,11 @@ dbg_exception(uint32_t mcause, uint32_t mstatus, uint32_t mepc,
                 case 'q':
                         dbg_query();
                         break;
+                case 'C':
+                case 'S':
                 case 'c':
                 case 's':
+                        dbg_cont_step(dbgpkt, &mepc);
                         asm volatile ("csrw mepc, %0" : : "r"(mepc));
                         return;
                 default:

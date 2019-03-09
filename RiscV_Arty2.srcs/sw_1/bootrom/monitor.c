@@ -227,7 +227,7 @@ monitor(void) {
                         break;
 
                 case 'B':
-                        asm volatile ("ebreak");
+                        ebreak();
                         break;
 
                 case '\0':

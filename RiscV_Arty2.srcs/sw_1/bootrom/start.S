@@ -258,3 +258,12 @@ DELAY:
         bnez    a0, 1b
 3:
         ret
+
+        /* void ebreak(void);
+         * Execute an ebreak instruction to dump into debugger.
+         * debugger
+         */
+        .global ebreak
+ebreak:
+        ebreak
+        ret
