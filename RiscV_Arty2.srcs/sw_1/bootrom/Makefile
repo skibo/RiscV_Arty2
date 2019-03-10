@@ -9,7 +9,7 @@ CC=$(CROSS_COMPILE)gcc
 AS=$(CROSS_COMPILE)as
 BIN2HEX=/usr/bin/hexdump -v -e '/4 "%08X\n"'
 
-OBJS=vect.o start.o exception.o debug.o main.o console.o ping.o ether.o \
+OBJS=vect.o start.o exception.o main.o console.o ping.o ether.o \
 	blinky.o monitor.o
 ELFS=bootrom.elf
 BINS=bootrom_text.bin bootrom_data.bin
@@ -19,6 +19,10 @@ AFLAGS=-march=rv32i
 CFLAGS=-g -fno-builtin -march=rv32i -mabi=ilp32
 LFLAGS=-melf32lriscv -static -T $(LDSCRIPT)
 LIBS=$(shell $(CC) $(CFLAGS) -print-libgcc-file-name)
+
+# Optional GDB stub support
+# CFLAGS+=-DGDBSTUB
+# OBJS+= debug.o
 
 TARGETS=bootrom.mem bootrom.lst
 

@@ -25,6 +25,7 @@
  */
 
 #include "types.h"
+#include "sys.h"
 #include "console.h"
 #include "io.h"
 
@@ -35,9 +36,12 @@ uint32_t xregs[32];
 
 uint32_t istack[64];
 uint32_t iregs[32];
+uint32_t savedmstatus; /* mstatus saved during interrupt. */
 
 extern void timer_intr(void);
+#ifdef GDBSTUB
 extern void dbg_exception(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t []);
+#endif
 
 static void
 dumpregs(uint32_t *r)
@@ -82,8 +86,19 @@ exception(uint32_t mcause, uint32_t mstatus, uint32_t mepc, uint32_t mbadaddr)
                     mcause, mstatus, mepc, mbadaddr);
 
         dumpregs(xregs);
-
+#ifdef GDBSTUB
         dbg_exception(mcause, mstatus, mepc, mbadaddr, xregs);
+#else
+        /* If exception in ebreak(), allow to continue. */
+        if (mepc == (uint32_t)ebreak) {
+                mepc += 4;
+                asm volatile ("csrw mepc, %0" : : "r"(mepc));
+                return;
+        }
+
+        for (;;)
+                ;
+#endif
 }
 
 void
