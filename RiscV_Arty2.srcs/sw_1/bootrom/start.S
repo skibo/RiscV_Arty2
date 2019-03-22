@@ -110,7 +110,7 @@ exc_handle:
         sw	t1, 20(t0)
 
         /* Use exception handler stack. */
-        la      sp, xstack + 0xf0
+        la      sp, xstack + 0x1f0
 
         csrr    a0, mcause
         csrr    a1, mstatus
@@ -118,7 +118,10 @@ exc_handle:
         csrr    a3, mbadaddr
         jal     exception
 
-        /* Restore registers except t0 (x5). */
+        /* Return value from handler goes back into mstatus. */
+        csrw    mstatus, a0
+
+        /* Restore registers.  Do t0 (x5) last. */
         la      t0, xregs
 
         lw	x1, 4(t0)
@@ -199,12 +202,21 @@ intr_vect:
         sw	t1, 20(t0)
 
         /* Use interrupt handler stack. */
-        la      sp, istack + 0xf0
+        la      sp, istack + 0x1f0
 
-        /* Call handler. */
+        /* Call interrupt handler:
+         * uint32_t interrupt(mcause, mstatus, mip, mie);
+         */
         csrr    a0, mcause
+        csrr    a1, mstatus
+        csrr    a2, mip
+        csrr    a3, mie
         jal     interrupt
 
+        /* Return value from handler goes back into mstatus. */
+        csrw    mstatus, a0
+
+        /* Restore registers. */
         la      t0, iregs
 
         lw	x1, 4(t0)
@@ -261,7 +273,6 @@ DELAY:
 
         /* void ebreak(void);
          * Execute an ebreak instruction to dump into debugger.
-         * debugger
          */
         .global ebreak
 ebreak:

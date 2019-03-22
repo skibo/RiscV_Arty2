@@ -38,6 +38,7 @@
 #define SIGSEGV         11
 
 static char dbgpkt[384];
+static uint32_t xregs2[32];
 
 static void
 dbg_putchar(char c)
@@ -421,10 +422,17 @@ void
 dbg_exception(uint32_t mcause, uint32_t mstatus, uint32_t mepc,
               uint32_t mbadaddr, uint32_t xregs[])
 {
+        int i;
+
+        /* Save exception registers in case we nest exceptions due to
+         * memory faults.
+         */
+        for (i = 0; i < 32; i++)
+                xregs2[i] = xregs[i];
 
         switch (mcause) {
-        case 0:	 /* Instruction address misaligned */
-        case 1:	 /* Instruction access fault */
+        case 0:  /* Instruction address misaligned */
+        case 1:  /* Instruction access fault */
         case 4:  /* Load address misaligned */
         case 5:  /* Load access fault */
         case 6:  /* Store / AMO address misaligned */
@@ -455,10 +463,10 @@ dbg_exception(uint32_t mcause, uint32_t mstatus, uint32_t mepc,
 
                 switch(dbgpkt[0]) {
                 case'g':
-                        dbg_getregs(xregs, mepc);
+                        dbg_getregs(xregs2, mepc);
                         break;
                 case 'G':
-                        dbg_setregs(xregs, &mepc, dbgpkt + 1);
+                        dbg_setregs(xregs2, &mepc, dbgpkt + 1);
                         break;
                 case 'm':
                         dbg_getmem(dbgpkt + 1);
@@ -477,6 +485,8 @@ dbg_exception(uint32_t mcause, uint32_t mstatus, uint32_t mepc,
                 case 'c':
                 case 's':
                         dbg_cont_step(dbgpkt, &mepc);
+                        for (i = 0; i < 32; i++)
+                                xregs[i] = xregs2[i];
                         asm volatile ("csrw mepc, %0" : : "r"(mepc));
                         return;
                 default:

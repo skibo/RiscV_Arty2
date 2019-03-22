@@ -31,10 +31,10 @@
 
 int memfault;
 
-uint32_t xstack[64];
+uint32_t xstack[128];
 uint32_t xregs[32];
 
-uint32_t istack[64];
+uint32_t istack[128];
 uint32_t iregs[32];
 uint32_t savedmstatus; /* mstatus saved during interrupt. */
 
@@ -67,7 +67,7 @@ dumpregs(uint32_t *r)
         }
 }
 
-void
+uint32_t
 exception(uint32_t mcause, uint32_t mstatus, uint32_t mepc, uint32_t mbadaddr)
 {
         /* Catch memory faults from monitor. */
@@ -78,7 +78,7 @@ exception(uint32_t mcause, uint32_t mstatus, uint32_t mepc, uint32_t mbadaddr)
                 mepc += 4;
                 asm volatile ("csrw mepc, %0" : : "r"(mepc));
 
-                return;
+                return mstatus;
         }
 
         cons_printf("\nException!\n");
@@ -99,18 +99,17 @@ exception(uint32_t mcause, uint32_t mstatus, uint32_t mepc, uint32_t mbadaddr)
         for (;;)
                 ;
 #endif
+        return mstatus;
 }
 
-void
-interrupt(uint32_t mcause)
+uint32_t
+interrupt(uint32_t mcause, uint32_t mstatus, uint32_t mip, uint32_t mie)
 {
-        uint32_t mip, mie;
-
-        asm volatile ("csrr %0, mip" : "=r" (mip));
-        asm volatile ("csrr %0, mie" : "=r" (mie));
 
         if ((mip & mie & (1 << 7)) != 0) {
                 /* Timer interrupt. */
                 timer_intr();
         }
+
+        return mstatus;
 }
