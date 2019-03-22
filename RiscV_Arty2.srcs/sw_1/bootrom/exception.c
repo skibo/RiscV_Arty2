@@ -93,7 +93,7 @@ exception(uint32_t mcause, uint32_t mstatus, uint32_t mepc, uint32_t mbadaddr)
         if (mepc == (uint32_t)ebreak) {
                 mepc += 4;
                 asm volatile ("csrw mepc, %0" : : "r"(mepc));
-                return;
+                return mstatus;
         }
 
         for (;;)
