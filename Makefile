@@ -6,8 +6,7 @@
 PROJNAME=RiscV_Arty2
 SRCDIR=$(PROJNAME).srcs
 SCRIPTDIR=$(SRCDIR)/scripts_1
-RTLSRC= \
-	$(SRCDIR)/source_1/design_1_wrapper.v
+
 RTLTOP=design_1_wrapper
 
 SWSRCS= \
@@ -49,7 +48,7 @@ IMPLEMENTATION=$(PROJNAME)/$(PROJNAME).runs/impl_1/$(RTLTOP)_routed.dcp
 BITSTREAM=$(PROJNAME)/$(PROJNAME).runs/impl_1/$(RTLTOP).bit
 
 impl: $(IMPLEMENTATION)
-$(IMPLEMENTATION): $(RTLSRC)
+$(IMPLEMENTATION):
 	@echo Building implementation from rtl sources.
 	$(VIVADO) -mode batch -source $(SCRIPTDIR)/implement.tcl \
 		-tclargs $(PROJNAME)
