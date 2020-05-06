@@ -13,11 +13,12 @@ into the monitor by hitting 'm' while the LEDs are blinking.
 Building (Linux only)
 ---------------------
 You need:
-        + Xilinx Vivado 2018.1
+        + Xilinx Vivado (I'm using 2019.2)
         + Digilent board files
           (see https://reference.digilentinc.com/reference/software/vivado/board-files),
         + The Risc-V toolchain
-          (https://riscv.org/software-tools/)
+	  (https://www.sifive.com/boards)
+	  (https://static.dev.sifive.com/dev-tools/riscv64-unknown-elf-gcc-8.3.0-2019.08.0-x86_64-linux-ubuntu14.tar.gz)
         + Digilent Adept tools
           (http://store.digilentinc.com/digilent-adept-2-download-only/)
 
@@ -29,7 +30,7 @@ Clone repository and submodule:
 
 The $XILINX_VIVADO variable must point to your Xilinx Vivado directory.  (If
 you are already running Vivado, this variable is already set by the
-settings64.sh script.)  You also need $RISCV to point to your Risc-V tools
+settings64.sh script.)  You can also set $RISCV to point to your Risc-V tools
 directory.  "ls $RISCV/bin" should list all the riscv64-unknown-elf-* toolchain
 binaries.
 
@@ -74,5 +75,5 @@ you recompile the firmware.  Any time the bitstream is recreated, you'll
 need to create a new bootrom.mmi file with "make mmi".
 
 ---
-January, 2018
+January, 2018	Updated: May, 2020
 Thomas@Skibo.net

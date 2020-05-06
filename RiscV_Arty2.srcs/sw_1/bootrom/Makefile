@@ -1,9 +1,10 @@
 
-ifndef RISCV
-$(error RISCV must be set to point to RiscV toolchain)
+ifdef RISCV
+   CROSS_COMPILE=$(RISCV)/bin/riscv64-unknown-elf-
+else
+   CROSS_COMPILE=riscv64-unknown-elf-
 endif
 
-CROSS_COMPILE=$(RISCV)/bin/riscv32-unknown-elf-
 LD=$(CROSS_COMPILE)ld
 CC=$(CROSS_COMPILE)gcc
 AS=$(CROSS_COMPILE)as
