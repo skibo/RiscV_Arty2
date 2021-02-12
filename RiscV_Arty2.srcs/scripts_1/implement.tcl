@@ -17,4 +17,3 @@ wait_on_run synth_1
 # implementation
 launch_runs impl_1 -jobs 2
 wait_on_run impl_1
-

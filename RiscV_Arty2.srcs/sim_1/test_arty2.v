@@ -27,28 +27,28 @@
 
 module test_design_1_wrapper;
 
-	reg		reset;		// active low
-	reg		sys_clock;	// 100 Mhz input clock
-	reg     usb_uart_rxd;
-	wire	usb_uart_txd;
+    reg     reset;      // active low
+    reg     sys_clock;  // 100 Mhz input clock
+    reg     usb_uart_rxd;
+    wire    usb_uart_txd;
 
 
-	initial begin
+    initial begin
         reset = 0;
         sys_clock = 0;
         usb_uart_rxd = 1;
 
         repeat (20) @(posedge sys_clock);
         reset <= 1;
-	end
+    end
 
     always #5 sys_clock = ~sys_clock;
 
-	design_1_wrapper design_1_wrapper_0(
-		.reset(reset),
-		.sys_clock(sys_clock),
-		.usb_uart_rxd(usb_uart_rxd),
-		.usb_uart_txd(usb_uart_txd)
-	);
-    
+    design_1_wrapper design_1_wrapper_0(
+        .reset(reset),
+        .sys_clock(sys_clock),
+        .usb_uart_rxd(usb_uart_rxd),
+        .usb_uart_txd(usb_uart_txd)
+    );
+
 endmodule // test_design_1_wrapper

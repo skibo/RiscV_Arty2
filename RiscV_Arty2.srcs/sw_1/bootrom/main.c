@@ -41,15 +41,15 @@ void
 main(void)
 {
 
-        /* Enable LED tri-state outputs. */
-        WR32(GPIO0_TRI0, 0);
-        WR32(GPIO0_TRI1, 0);
+	/* Enable LED tri-state outputs. */
+	WR32(GPIO0_TRI0, 0);
+	WR32(GPIO0_TRI1, 0);
 
-        cons_puts(say_hi);
+	cons_puts(say_hi);
 
-        cons_printf("Date compiled: %s\n", __DATE__);
-        cons_printf("Time compiled: %s\n", __TIME__);
-        cons_puts("\nReady!\n");
+	cons_printf("Date compiled: %s\n", __DATE__);
+	cons_printf("Time compiled: %s\n", __TIME__);
+	cons_puts("\nReady!\n");
 
-        monitor();
+	monitor();
 }

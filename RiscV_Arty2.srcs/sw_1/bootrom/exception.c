@@ -46,70 +46,70 @@ extern void dbg_exception(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t []);
 static void
 dumpregs(uint32_t *r)
 {
-        int i;
-        static char *rnames[] = {
-                "x0/z  ", "x1/ra ", "x2/sp ", "x3/gp ",
-                "x4/tp ", "x5/t0 ", "x6/t1 ", "x7/t2 ",
-                "x8/s0 ", "x9/s1 ", "x10/a0", "x11/a1",
-                "x12/a2", "x13/a3", "x14/a4", "x15/a5",
-                "x16/a6", "x17/a7", "x18/s2", "x19/s3",
-                "x20/s4", "x21/s5", "x22/s6", "x23/s7",
-                "x24/s8", "x25/s9", "x26/sA", "x27/sB",
-                "x28/t3", "x29/t4", "x30/t5", "x31/t6"
-        };
+	int i;
+	static char *rnames[] = {
+		"x0/z  ", "x1/ra ", "x2/sp ", "x3/gp ",
+		"x4/tp ", "x5/t0 ", "x6/t1 ", "x7/t2 ",
+		"x8/s0 ", "x9/s1 ", "x10/a0", "x11/a1",
+		"x12/a2", "x13/a3", "x14/a4", "x15/a5",
+		"x16/a6", "x17/a7", "x18/s2", "x19/s3",
+		"x20/s4", "x21/s5", "x22/s6", "x23/s7",
+		"x24/s8", "x25/s9", "x26/sA", "x27/sB",
+		"x28/t3", "x29/t4", "x30/t5", "x31/t6"
+	};
 
-        for (i = 0; i < 32; i++) {
-                cons_printf("%s=%8x", rnames[i], r[i]);
-                if ((i & 3) == 3)
-                        cons_puts("\n");
-                else
-                        cons_putchar(' ');
-        }
+	for (i = 0; i < 32; i++) {
+		cons_printf("%s=%8x", rnames[i], r[i]);
+		if ((i & 3) == 3)
+			cons_puts("\n");
+		else
+			cons_putchar(' ');
+	}
 }
 
 uint32_t
 exception(uint32_t mcause, uint32_t mstatus, uint32_t mepc, uint32_t mbadaddr)
 {
-        /* Catch memory faults from monitor. */
-        if (memfault < 0 && mcause >= 4 && mcause <= 7) {
-                memfault = mcause;
+	/* Catch memory faults from monitor. */
+	if (memfault < 0 && mcause >= 4 && mcause <= 7) {
+		memfault = mcause;
 
-                /* Restart after offending instruction. */
-                mepc += 4;
-                asm volatile ("csrw mepc, %0" : : "r"(mepc));
+		/* Restart after offending instruction. */
+		mepc += 4;
+		asm volatile ("csrw mepc, %0" : : "r"(mepc));
 
-                return mstatus;
-        }
+		return mstatus;
+	}
 
-        cons_printf("\nException!\n");
-        cons_printf("   mcause=%8x mstatus=%8x mepc=%8x mbadaddr=%8x\n",
-                    mcause, mstatus, mepc, mbadaddr);
+	cons_printf("\nException!\n");
+	cons_printf("   mcause=%8x mstatus=%8x mepc=%8x mbadaddr=%8x\n",
+		    mcause, mstatus, mepc, mbadaddr);
 
-        dumpregs(xregs);
+	dumpregs(xregs);
 #ifdef GDBSTUB
-        dbg_exception(mcause, mstatus, mepc, mbadaddr, xregs);
+	dbg_exception(mcause, mstatus, mepc, mbadaddr, xregs);
 #else
-        /* If exception in ebreak(), allow to continue. */
-        if (mepc == (uint32_t)ebreak) {
-                mepc += 4;
-                asm volatile ("csrw mepc, %0" : : "r"(mepc));
-                return mstatus;
-        }
+	/* If exception in ebreak(), allow to continue. */
+	if (mepc == (uint32_t)ebreak) {
+		mepc += 4;
+		asm volatile ("csrw mepc, %0" : : "r"(mepc));
+		return mstatus;
+	}
 
-        for (;;)
-                ;
+	for (;;)
+		;
 #endif
-        return mstatus;
+	return mstatus;
 }
 
 uint32_t
 interrupt(uint32_t mcause, uint32_t mstatus, uint32_t mip, uint32_t mie)
 {
 
-        if ((mip & mie & (1 << 7)) != 0) {
-                /* Timer interrupt. */
-                timer_intr();
-        }
+	if ((mip & mie & (1 << 7)) != 0) {
+		/* Timer interrupt. */
+		timer_intr();
+	}
 
-        return mstatus;
+	return mstatus;
 }

@@ -25,7 +25,7 @@ proc write_lane {fileout rom msb lsb lane_depth} {
 proc write_mmi {filename} {
     set inst_path [get_cells -hierarchical *riscv_too_mem_0]
     set roms [get_cells -hierarchical -regexp -filter \
-            { PRIMITIVE_TYPE =~  BMEM.bram.* && NAME =~ .*riscv_too_mem_0.*}]
+	    { PRIMITIVE_TYPE =~  BMEM.bram.* && NAME =~ .*riscv_too_mem_0.*}]
 
     set nroms [llength $roms]
     set size [expr {4096 * $nroms}]
@@ -46,44 +46,44 @@ proc write_mmi {filename} {
 
     set msb 31
     if {$nroms == 4} {
-        # 16K, 4 BRAMS, lane width 8 bits
-        for {set i 3} {$i >= 0} {incr i -1} {
-            set rom [lindex $roms [lsearch $roms "*_$i"]]
-            write_lane $fileout $rom $msb [expr {$msb - $lane_width + 1}] $lane_depth
-            set msb [expr {$msb - $lane_width}]
-        }
+	# 16K, 4 BRAMS, lane width 8 bits
+	for {set i 3} {$i >= 0} {incr i -1} {
+	    set rom [lindex $roms [lsearch $roms "*_$i"]]
+	    write_lane $fileout $rom $msb [expr {$msb - $lane_width + 1}] $lane_depth
+	    set msb [expr {$msb - $lane_width}]
+	}
     } elseif {$nroms == 8} {
-        # 32K, 8 BRAMS, lane width 4 bits
-        for {set i 3} {$i >= 0} {incr i -1} {
-            for {set j 1} {$j >= 0} {incr j -1} {
-                set rom [lindex $roms [lsearch $roms "*_$i\_$j"]]
-                write_lane $fileout $rom $msb [expr {$msb - $lane_width + 1}] $lane_depth
-                set msb [expr {$msb - $lane_width}]
-            }
-        }
+	# 32K, 8 BRAMS, lane width 4 bits
+	for {set i 3} {$i >= 0} {incr i -1} {
+	    for {set j 1} {$j >= 0} {incr j -1} {
+		set rom [lindex $roms [lsearch $roms "*_$i\_$j"]]
+		write_lane $fileout $rom $msb [expr {$msb - $lane_width + 1}] $lane_depth
+		set msb [expr {$msb - $lane_width}]
+	    }
+	}
     } elseif {$nroms == 16} {
-        # 64K, 16 BRAMS, lane width 2 bits
-        for {set i 3} {$i >= 0} {incr i -1} {
-            for {set j 3} {$j >= 0} {incr j -1} {
-                set rom [lindex $roms [lsearch $roms "*_$i\_$j"]]
-                write_lane $fileout $rom $msb [expr {$msb - $lane_width + 1}] $lane_depth
-                set msb [expr {$msb - $lane_width}]
-            }
-        }
+	# 64K, 16 BRAMS, lane width 2 bits
+	for {set i 3} {$i >= 0} {incr i -1} {
+	    for {set j 3} {$j >= 0} {incr j -1} {
+		set rom [lindex $roms [lsearch $roms "*_$i\_$j"]]
+		write_lane $fileout $rom $msb [expr {$msb - $lane_width + 1}] $lane_depth
+		set msb [expr {$msb - $lane_width}]
+	    }
+	}
     } elseif {$nroms == 32} {
-        # 128K, 32 BRAMS, lane width 1 bit
-        for {set i 3} {$i >= 0} {incr i -1} {
-            for {set j 7} {$j >= 0} {incr j -1} {
-                    set rom [lindex $roms [lsearch $roms "*_$i\_0\_$j"]]
-                    write_lane $fileout $rom $msb [expr {$msb - $lane_width + 1}] $lane_depth
-                set msb [expr {$msb - $lane_width}]
-            }
-        }
+	# 128K, 32 BRAMS, lane width 1 bit
+	for {set i 3} {$i >= 0} {incr i -1} {
+	    for {set j 7} {$j >= 0} {incr j -1} {
+		    set rom [lindex $roms [lsearch $roms "*_$i\_0\_$j"]]
+		    write_lane $fileout $rom $msb [expr {$msb - $lane_width + 1}] $lane_depth
+		set msb [expr {$msb - $lane_width}]
+	    }
+	}
     } else {
-        # error!
-        puts "ERROR: Unsupported length or other error!"
-        puts "nroms = $nroms roms: $roms"
-        exit 1
+	# error!
+	puts "ERROR: Unsupported length or other error!"
+	puts "nroms = $nroms roms: $roms"
+	exit 1
     }
 
     puts $fileout "      </BusBlock>"

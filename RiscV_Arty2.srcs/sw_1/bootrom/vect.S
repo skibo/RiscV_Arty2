@@ -24,14 +24,13 @@
  * SUCH DAMAGE.
  */
 
-        .section .vects, "ax"
-        .global excvector
-        . = 0x1c0
+	.section .vects, "ax"
+	.global excvector
+	. = 0x1c0
 excvector:
-        j       exc_handle
+	j       exc_handle
 
-        . = 0x200
-        .global resetvector
+	. = 0x200
+	.global resetvector
 resetvector:
-        j       _start
-        
+	j       _start

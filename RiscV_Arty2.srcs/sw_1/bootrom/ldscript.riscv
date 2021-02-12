@@ -2,25 +2,25 @@ OUTPUT_ARCH(riscv)
 ENTRY(_start)
 SECTIONS
 {
-        . = 0x0000;
+	. = 0x0000;
 	_text = .;
-        .text	:
-        {
-                vect.o(.vects)
+	.text	:
+	{
+		vect.o(.vects)
 		start.o(.text)
-                *(.text)
+		*(.text)
 		. = ALIGN(4);
-        } 
-        _etext = .;
+	}
+	_etext = .;
 	_rodata = .;
 	.rodata :
 	{
 		*(.rodata)
 		. = ALIGN(4);
 	}
-        _datai = .;
+	_datai = .;
 
-        . = 0x6000;
+	. = 0x6000;
 	_data = .;
 	.data :
 	{

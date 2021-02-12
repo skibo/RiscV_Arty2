@@ -74,115 +74,115 @@ static int rx_pingpong;
 void
 ether_setaddr(const uint8_t *addr)
 {
-        int i;
-        uint32_t *buf = (uint32_t *)ETH_TX_PING;
+	int i;
+	uint32_t *buf = (uint32_t *)ETH_TX_PING;
 
-        /* Wait for buf to be available. */
-        while ((RD32(ETH_TX_PING_CTRL) & ETH_TX_CTRL_GO) != 0)
-                ;
+	/* Wait for buf to be available. */
+	while ((RD32(ETH_TX_PING_CTRL) & ETH_TX_CTRL_GO) != 0)
+		;
 
-        buf[0] = addr[0] | ((uint32_t)addr[1] << 8) |
-                ((uint32_t)addr[2] << 16) | ((uint32_t)addr[3] << 24);
-        buf[1] = addr[4] | ((uint32_t)addr[5] << 8);
+	buf[0] = addr[0] | ((uint32_t)addr[1] << 8) |
+		((uint32_t)addr[2] << 16) | ((uint32_t)addr[3] << 24);
+	buf[1] = addr[4] | ((uint32_t)addr[5] << 8);
 
-        for (i = 0; i < 6; i++)
-                eth_addr[i] = addr[i];
+	for (i = 0; i < 6; i++)
+		eth_addr[i] = addr[i];
 
-        /* Go! */
-        WR32(ETH_TX_PING_CTRL, ETH_TX_CTRL_GO | ETH_TX_CTRL_PROG);
+	/* Go! */
+	WR32(ETH_TX_PING_CTRL, ETH_TX_CTRL_GO | ETH_TX_CTRL_PROG);
 
-        /* Wait for program complete. */
-        while ((RD32(ETH_TX_PING_CTRL) &
-                (ETH_TX_CTRL_GO | ETH_TX_CTRL_PROG)) != 0)
-                ;
+	/* Wait for program complete. */
+	while ((RD32(ETH_TX_PING_CTRL) &
+		(ETH_TX_CTRL_GO | ETH_TX_CTRL_PROG)) != 0)
+		;
 }
 
 void
 ether_tx(const uint32_t *data, int len)
 {
-        int i;
-        uint32_t ctrlreg = tx_pingpong ? ETH_TX_PONG_CTRL : ETH_TX_PING_CTRL;
-        uint32_t *buf = (uint32_t *)(tx_pingpong ? ETH_TX_PONG : ETH_TX_PING);
+	int i;
+	uint32_t ctrlreg = tx_pingpong ? ETH_TX_PONG_CTRL : ETH_TX_PING_CTRL;
+	uint32_t *buf = (uint32_t *)(tx_pingpong ? ETH_TX_PONG : ETH_TX_PING);
 
-        /* Wait for buf to be available. */
-        while ((RD32(ctrlreg) & ETH_TX_CTRL_GO) != 0)
-                ;
+	/* Wait for buf to be available. */
+	while ((RD32(ctrlreg) & ETH_TX_CTRL_GO) != 0)
+		;
 
-        /* Fill buf. */
-        for (i = 0; i < len; i += 4)
-                *buf++ = *data++;
+	/* Fill buf. */
+	for (i = 0; i < len; i += 4)
+		*buf++ = *data++;
 
-        /* Set length. */
-        WR32(tx_pingpong ? ETH_TX_PONG_LEN : ETH_TX_PING_LEN, len);
+	/* Set length. */
+	WR32(tx_pingpong ? ETH_TX_PONG_LEN : ETH_TX_PING_LEN, len);
 
-        /* Go! */
-        WR32(ctrlreg, ETH_TX_CTRL_GO);
+	/* Go! */
+	WR32(ctrlreg, ETH_TX_CTRL_GO);
 
-        tx_pingpong = !tx_pingpong;
+	tx_pingpong = !tx_pingpong;
 }
 
 int
 ether_rx(uint32_t *data, int maxlen)
 {
-        int i;
-        uint32_t ctrlreg = rx_pingpong ? ETH_RX_PONG_CTRL : ETH_RX_PING_CTRL;
-        uint32_t *buf = (uint32_t *)(rx_pingpong ? ETH_RX_PONG : ETH_RX_PING);
+	int i;
+	uint32_t ctrlreg = rx_pingpong ? ETH_RX_PONG_CTRL : ETH_RX_PING_CTRL;
+	uint32_t *buf = (uint32_t *)(rx_pingpong ? ETH_RX_PONG : ETH_RX_PING);
 
-        if ((RD32(ctrlreg) & ETH_RX_CTRL_RDY) == 0)
-                return 0;
+	if ((RD32(ctrlreg) & ETH_RX_CTRL_RDY) == 0)
+		return 0;
 
-        for (i = 0; i < maxlen; i += 4)
-                *data++ = *buf++;
+	for (i = 0; i < maxlen; i += 4)
+		*data++ = *buf++;
 
-        WR32(ctrlreg, 0);
-        rx_pingpong = !rx_pingpong;
+	WR32(ctrlreg, 0);
+	rx_pingpong = !rx_pingpong;
 
-        return maxlen;
+	return maxlen;
 }
 
 int
 ether_mdio_wr(uint8_t phy, uint8_t reg, uint16_t data)
 {
-        /* Wait until not busy. */
-        while ((RD32(ETH_MDIO_CTRL) & ETH_MDIO_CTRL_STATUS) != 0)
-                ;
+	/* Wait until not busy. */
+	while ((RD32(ETH_MDIO_CTRL) & ETH_MDIO_CTRL_STATUS) != 0)
+		;
 
-        /* Write phy address and reg address. */
-        WR32(ETH_MDIO_ADDR, ((uint32_t)reg << ETH_MDIO_ADDR_REGA_SHIFT) |
-             ((uint32_t)phy << ETH_MDIO_ADDR_PHYA_SHIFT));
+	/* Write phy address and reg address. */
+	WR32(ETH_MDIO_ADDR, ((uint32_t)reg << ETH_MDIO_ADDR_REGA_SHIFT) |
+	     ((uint32_t)phy << ETH_MDIO_ADDR_PHYA_SHIFT));
 
-        /* Write data. */
-        WR32(ETH_MDIO_WRITE, data);
+	/* Write data. */
+	WR32(ETH_MDIO_WRITE, data);
 
-        /* Go! */
-        WR32(ETH_MDIO_CTRL, ETH_MDIO_CTRL_EN | ETH_MDIO_CTRL_STATUS);
+	/* Go! */
+	WR32(ETH_MDIO_CTRL, ETH_MDIO_CTRL_EN | ETH_MDIO_CTRL_STATUS);
 
-        /* Wait until done. */
-        while ((RD32(ETH_MDIO_CTRL) & ETH_MDIO_CTRL_STATUS) != 0)
-                ;
+	/* Wait until done. */
+	while ((RD32(ETH_MDIO_CTRL) & ETH_MDIO_CTRL_STATUS) != 0)
+		;
 
-        return 0;
+	return 0;
 }
 
 int
 ether_mdio_rd(uint8_t phy, uint8_t reg)
 {
-        /* Wait until not busy. */
-        while ((RD32(ETH_MDIO_CTRL) & ETH_MDIO_CTRL_STATUS) != 0)
-                ;
+	/* Wait until not busy. */
+	while ((RD32(ETH_MDIO_CTRL) & ETH_MDIO_CTRL_STATUS) != 0)
+		;
 
-        /* Write phy address and reg address. */
-        WR32(ETH_MDIO_ADDR, ((uint32_t)reg << ETH_MDIO_ADDR_REGA_SHIFT) |
-             ((uint32_t)phy << ETH_MDIO_ADDR_PHYA_SHIFT) |
-             ETH_MDIO_ADDR_RNW);
+	/* Write phy address and reg address. */
+	WR32(ETH_MDIO_ADDR, ((uint32_t)reg << ETH_MDIO_ADDR_REGA_SHIFT) |
+	     ((uint32_t)phy << ETH_MDIO_ADDR_PHYA_SHIFT) |
+	     ETH_MDIO_ADDR_RNW);
 
-        /* Go! */
-        WR32(ETH_MDIO_CTRL, ETH_MDIO_CTRL_EN | ETH_MDIO_CTRL_STATUS);
+	/* Go! */
+	WR32(ETH_MDIO_CTRL, ETH_MDIO_CTRL_EN | ETH_MDIO_CTRL_STATUS);
 
-        /* Wait until done. */
-        while ((RD32(ETH_MDIO_CTRL) & ETH_MDIO_CTRL_STATUS) != 0)
-                ;
+	/* Wait until done. */
+	while ((RD32(ETH_MDIO_CTRL) & ETH_MDIO_CTRL_STATUS) != 0)
+		;
 
-        /* Return data. */
-        return RD32(ETH_MDIO_READ) & 0xffff;
+	/* Return data. */
+	return RD32(ETH_MDIO_READ) & 0xffff;
 }

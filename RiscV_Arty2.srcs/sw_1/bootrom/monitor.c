@@ -39,216 +39,216 @@ extern void blink_toggle(void);
 
 static char *
 skipspace(char *s) {
-        while (*s == ' ' || *s == '\t')
-                s++;
-        return s;
+	while (*s == ' ' || *s == '\t')
+		s++;
+	return s;
 }
 
 /* Decode a single hex character. */
 static uint8_t
 gethex1(char c) {
-        if (c >= '0' && c <= '9')
-                return c-'0';
-        else if (c >= 'a' && c <= 'f')
-                return c-'a'+10;
-        else if (c >= 'A' && c <= 'F')
-                return c-'A'+10;
-        else
-                return 0;
+	if (c >= '0' && c <= '9')
+		return c-'0';
+	else if (c >= 'a' && c <= 'f')
+		return c-'a'+10;
+	else if (c >= 'A' && c <= 'F')
+		return c-'A'+10;
+	else
+		return 0;
 }
 
 /* Decode a hex number up to n characters long. */
 static uint32_t
 gethex(char **s, int n) {
-        uint32_t data = 0;
-        while (n > 0 && ((**s >= '0' && **s <= '9') ||
-                         (**s >= 'a' && **s <= 'f') ||
-                         (**s >= 'A' && **s <= 'F'))) {
-                data = (data << 4) | (uint32_t) gethex1(**s);
-                (*s)++;
-                n--;
-        }
-        return data;
+	uint32_t data = 0;
+	while (n > 0 && ((**s >= '0' && **s <= '9') ||
+			 (**s >= 'a' && **s <= 'f') ||
+			 (**s >= 'A' && **s <= 'F'))) {
+		data = (data << 4) | (uint32_t) gethex1(**s);
+		(*s)++;
+		n--;
+	}
+	return data;
 }
 
 /* Dump memory in bytes. */
 void
 dumpbytes(uint32_t addr, int len)
 {
-        int i;
-        uint8_t d8;
+	int i;
+	uint8_t d8;
 
-        while (len > 0) {
-                cons_printf("%8x: ", addr);
-                for (i = (addr & 15); i > 0; i--)
-                        cons_puts("   ");
-                do {
-                        memfault = -1;
-                        d8 = *(uint8_t *)addr;
-                        if (memfault > 0) {
-                                memfault = 0;
-                                cons_puts("fault!\n");
-                                return;
-                        }
-                        memfault = 0;
-                        cons_printf("%2x ", d8);
-                        addr++;
-                        len--;
-                } while (len > 0 && (addr & 15) != 0);
-                cons_puts("\n");
-                if (cons_pollc() >= 0)
-                        break;
-        }
+	while (len > 0) {
+		cons_printf("%8x: ", addr);
+		for (i = (addr & 15); i > 0; i--)
+			cons_puts("   ");
+		do {
+			memfault = -1;
+			d8 = *(uint8_t *)addr;
+			if (memfault > 0) {
+				memfault = 0;
+				cons_puts("fault!\n");
+				return;
+			}
+			memfault = 0;
+			cons_printf("%2x ", d8);
+			addr++;
+			len--;
+		} while (len > 0 && (addr & 15) != 0);
+		cons_puts("\n");
+		if (cons_pollc() >= 0)
+			break;
+	}
 }
 
 /* Dump memory in 32-bit words. */
 void
 dumpmem(uint32_t addr, int len)
 {
-        int i;
-        uint32_t d32;
+	int i;
+	uint32_t d32;
 
-        addr &= ~3;
-        len >>= 2;
+	addr &= ~3;
+	len >>= 2;
 
-        while (len > 0) {
-                cons_printf("%8x: ", addr);
-                for (i = (addr & 15); i > 0; i -= 4)
-                        cons_puts("         ");
-                do {
-                        memfault = -1;
-                        d32 = *(uint32_t *)addr;
-                        if (memfault > 0) {
-                                memfault = 0;
-                                cons_puts("fault!\n");
-                                return;
-                        }
-                        memfault = 0;
-                        cons_printf("%8x ", d32);
-                        addr += 4;
-                        len--;
-                } while (len > 0 && (addr & 15) != 0);
-                cons_puts("\n");
-                if (cons_pollc() >= 0)
-                        break;
-        }
+	while (len > 0) {
+		cons_printf("%8x: ", addr);
+		for (i = (addr & 15); i > 0; i -= 4)
+			cons_puts("         ");
+		do {
+			memfault = -1;
+			d32 = *(uint32_t *)addr;
+			if (memfault > 0) {
+				memfault = 0;
+				cons_puts("fault!\n");
+				return;
+			}
+			memfault = 0;
+			cons_printf("%8x ", d32);
+			addr += 4;
+			len--;
+		} while (len > 0 && (addr & 15) != 0);
+		cons_puts("\n");
+		if (cons_pollc() >= 0)
+			break;
+	}
 }
 
 void
 monitor(void) {
-        char *s;
-        uint8_t data8;
-        uint32_t data32;
+	char *s;
+	uint8_t data8;
+	uint32_t data32;
 
-        uint32_t arg0, arg1;
-        uint8_t cmd;
+	uint32_t arg0, arg1;
+	uint8_t cmd;
 
-        cons_puts("\nMonitor:\n");
+	cons_puts("\nMonitor:\n");
 
-        linebuf[0] = '\0';
+	linebuf[0] = '\0';
 
-        blink_start();
+	blink_start();
 
-        for (;;) {
-                cons_puts(": ");
-                cons_getline(linebuf, sizeof(linebuf));
+	for (;;) {
+		cons_puts(": ");
+		cons_getline(linebuf, sizeof(linebuf));
 
-                s = skipspace(linebuf);
-                cmd = *s++;
+		s = skipspace(linebuf);
+		cmd = *s++;
 
-                switch (cmd) {
+		switch (cmd) {
 
-                case 'r':
-                        /* Read word. */
-                        s = skipspace(s);
-                        if (!*s)
-                                break;
-                        arg0 = gethex(&s, 8);
+		case 'r':
+			/* Read word. */
+			s = skipspace(s);
+			if (!*s)
+				break;
+			arg0 = gethex(&s, 8);
 
-                        memfault = -1;
-                        data32 = *(uint32_t *)arg0;
-                        if (memfault > 0) {
-                                memfault = 0;
-                                cons_puts("fault!\n");
-                                break;
-                        }
-                        memfault = 0;
+			memfault = -1;
+			data32 = *(uint32_t *)arg0;
+			if (memfault > 0) {
+				memfault = 0;
+				cons_puts("fault!\n");
+				break;
+			}
+			memfault = 0;
 
-                        cons_printf("%8x: %8x\n", arg0, data32);
-                        break;
+			cons_printf("%8x: %8x\n", arg0, data32);
+			break;
 
-                case 'w':
-                        /* Write location. */
-                        s = skipspace(s);
-                        if (!*s)
-                                break;
-                        arg0 = gethex(&s, 8);
-                        s = skipspace(s);
-                        if (!*s)
-                                break;
-                        arg1 = gethex(&s, 8);
+		case 'w':
+			/* Write location. */
+			s = skipspace(s);
+			if (!*s)
+				break;
+			arg0 = gethex(&s, 8);
+			s = skipspace(s);
+			if (!*s)
+				break;
+			arg1 = gethex(&s, 8);
 
-                        cons_printf("%8x <- %8x", arg0, arg1);
-                        memfault = -1;
-                        *((uint32_t *)arg0) = arg1;
-                        if (memfault > 0) {
-                                memfault = 0;
-                                cons_puts(" fault!\n");
-                                break;
-                        }
-                        memfault = 0;
-                        cons_puts("\n");
-                        break;
+			cons_printf("%8x <- %8x", arg0, arg1);
+			memfault = -1;
+			*((uint32_t *)arg0) = arg1;
+			if (memfault > 0) {
+				memfault = 0;
+				cons_puts(" fault!\n");
+				break;
+			}
+			memfault = 0;
+			cons_puts("\n");
+			break;
 
-                case 'd':
-                case 'D':
-                        /* Dump memory. */
-                        s = skipspace(s);
-                        if (*s) {
-                                arg0 = gethex(&s, 8);
-                                s = skipspace(s);
-                        }
-                        if (*s)
-                                arg1 = gethex(&s, 8);
+		case 'd':
+		case 'D':
+			/* Dump memory. */
+			s = skipspace(s);
+			if (*s) {
+				arg0 = gethex(&s, 8);
+				s = skipspace(s);
+			}
+			if (*s)
+				arg1 = gethex(&s, 8);
 
-                        if (cmd == 'D')
-                                dumpbytes(arg0, arg1);
-                        else
-                                dumpmem(arg0, arg1);
-                        arg0 += arg1;
-                        break;
+			if (cmd == 'D')
+				dumpbytes(arg0, arg1);
+			else
+				dumpmem(arg0, arg1);
+			arg0 += arg1;
+			break;
 
-                case 'p':
-                        do_pingtest();
-                        break;
+		case 'p':
+			do_pingtest();
+			break;
 
-                case 'b':
-                        blink_toggle();
-                        break;
+		case 'b':
+			blink_toggle();
+			break;
 
-                case 'B':
-                        ebreak();
-                        break;
+		case 'B':
+			ebreak();
+			break;
 
-                case '\0':
-                        break;
+		case '\0':
+			break;
 
-                case 'h':
-                case '?':
-                        cons_puts("Commands:\n"
-                                  "   r <addr> -\t\tread location\n"
-                                  "   w <addr> <data> -\twrite location\n"
-                                  "   d <addr> <len> -\tdump memory\n"
-                                  "   D <addr> <len> -\tdump bytes\n"
-                                  "   p -\t\t\tping test.\n"
-                                  "   b -\t\t\ttoggle blinking LEDs.\n"
-                                  "   B -\t\t\thit breakpoint.\n"
-                                );
-                        break;
+		case 'h':
+		case '?':
+			cons_puts("Commands:\n"
+				  "   r <addr> -\t\tread location\n"
+				  "   w <addr> <data> -\twrite location\n"
+				  "   d <addr> <len> -\tdump memory\n"
+				  "   D <addr> <len> -\tdump bytes\n"
+				  "   p -\t\t\tping test.\n"
+				  "   b -\t\t\ttoggle blinking LEDs.\n"
+				  "   B -\t\t\thit breakpoint.\n"
+				);
+			break;
 
-                default:
-                        cons_printf("Unknown command: '%c'.  "
-                                    "Type h for help\n", cmd);
-                }
-        }
+		default:
+			cons_printf("Unknown command: '%c'.  "
+				    "Type h for help\n", cmd);
+		}
+	}
 }

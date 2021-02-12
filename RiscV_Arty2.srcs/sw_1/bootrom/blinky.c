@@ -34,58 +34,58 @@ static int blink_ctr;
 void
 timer_intr(void)
 {
-        int color = ((blink_ctr >> 4) & 7);
-        uint32_t tmrh, tmr;
+	int color = ((blink_ctr >> 4) & 7);
+	uint32_t tmrh, tmr;
 
-        /* Do something interesting with LEDs. */
-        WR32(GPIO0_DATA1,
-             ((blink_ctr & 1) ? color : 0) |
-             ((blink_ctr & 2) ? (color << 3) : 0) |
-             ((blink_ctr & 4) ? (color << 6) : 0) |
-             ((blink_ctr & 8) ? (color << 9) : 0));
+	/* Do something interesting with LEDs. */
+	WR32(GPIO0_DATA1,
+	     ((blink_ctr & 1) ? color : 0) |
+	     ((blink_ctr & 2) ? (color << 3) : 0) |
+	     ((blink_ctr & 4) ? (color << 6) : 0) |
+	     ((blink_ctr & 8) ? (color << 9) : 0));
 
-        WR32(GPIO0_DATA0, blink_ctr & 0xf);
+	WR32(GPIO0_DATA0, blink_ctr & 0xf);
 
-        blink_ctr++;
+	blink_ctr++;
 
-        /* Set up next interrupt. */
-        do {
-                tmrh = RD32(MTIMEH_REG);
-                tmr = RD32(MTIME_REG);
-        } while (tmrh != RD32(MTIMEH_REG));
+	/* Set up next interrupt. */
+	do {
+		tmrh = RD32(MTIMEH_REG);
+		tmr = RD32(MTIME_REG);
+	} while (tmrh != RD32(MTIMEH_REG));
 
-        if (tmr + BLINK_INTERVAL < tmr)
-                tmrh++;
-        tmr += BLINK_INTERVAL;
+	if (tmr + BLINK_INTERVAL < tmr)
+		tmrh++;
+	tmr += BLINK_INTERVAL;
 
-        WR32(MTIMECMPH_REG, tmrh);
-        WR32(MTIMECMP_REG, tmr);
+	WR32(MTIMECMPH_REG, tmrh);
+	WR32(MTIMECMP_REG, tmr);
 }
 
 void
 blink_start(void)
 {
-        blink_enable = 1;
-        /* Set MTIE bit. */
-        asm volatile ("li t0, 1 << 7\n\t"
-                      "csrs mie, t0\n");
-        timer_intr();
+	blink_enable = 1;
+	/* Set MTIE bit. */
+	asm volatile ("li t0, 1 << 7\n\t"
+		      "csrs mie, t0\n");
+	timer_intr();
 }
 
 void
 blink_stop(void)
 {
-        /* Reset MTIE bit. */
-        asm volatile ("li t0, 1 << 7\n\t"
-                      "csrc mie, t0\n");
-        blink_enable = 0;
+	/* Reset MTIE bit. */
+	asm volatile ("li t0, 1 << 7\n\t"
+		      "csrc mie, t0\n");
+	blink_enable = 0;
 }
 
 void
 blink_toggle(void)
 {
-        if (blink_enable)
-                blink_stop();
-        else
-                blink_start();
+	if (blink_enable)
+		blink_stop();
+	else
+		blink_start();
 }
