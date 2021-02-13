@@ -7,18 +7,16 @@ and Xilinx IP for UART and GPIO peripherals.
 
 In the RiscV_Arty2.srcs/sw_1/bootrom directory is some source code that
 started out as a boot-rom but is really just "Hello World" that blinks
-the LEDs and has a crude monitor that can peek and poke locations.  Drop
-into the monitor by hitting 'm' while the LEDs are blinking.
+the LEDs and has a crude monitor that can peek and poke locations.
 
 Building (Linux only)
 ---------------------
 You need:
-        + Xilinx Vivado (I'm using 2019.2)
-        + Digilent board files
+        + Xilinx Vivado (I'm using 2020.2)
+        + Digilent board files, particularly new/board_files/arty.
           (see https://reference.digilentinc.com/reference/software/vivado/board-files),
-        + The Risc-V toolchain
-	  (https://www.sifive.com/boards)
-	  (https://static.dev.sifive.com/dev-tools/riscv64-unknown-elf-gcc-8.3.0-2019.08.0-x86_64-linux-ubuntu14.tar.gz)
+        + The Risc-V toolchain: ("sudo apt install gcc-riscv64-unknown-elf")
+
         + Digilent Adept tools
           (http://store.digilentinc.com/digilent-adept-2-download-only/)
 
@@ -30,9 +28,7 @@ Clone repository and submodule:
 
 The $XILINX_VIVADO variable must point to your Xilinx Vivado directory.  (If
 you are already running Vivado, this variable is already set by the
-settings64.sh script.)  You can also set $RISCV to point to your Risc-V tools
-directory.  "ls $RISCV/bin" should list all the riscv64-unknown-elf-* toolchain
-binaries.
+settings64.sh script.)
 
 First, make the Vivado project:
 
@@ -63,17 +59,14 @@ can create an MMI file with this:
    make mmi
 
 This creates an XML file (bootrom.mmi) that the Xilinx tool "updatemem"
-can use to reinstall the firmware in the bitstream.  It also creates a
-small file "updatemem.txt" which has the command line options to updatemem
-to reinstall the firmware in the bitstream:
+can use to reinstall the firmware in the bitstream.  It also creates an
+"updaterom.sh" shell script which is convenient for updating the bitstream
+with the new firmware.
 
-   cd RiscV_Arty2/RiscV_Arty2.runs/impl_1
-   source updatemem.txt
-
-Once the mmi file is created, you only need to run updatemem each time
+Once the mmi file is created, you only need to run updaterom.sh  each time
 you recompile the firmware.  Any time the bitstream is recreated, you'll
 need to create a new bootrom.mmi file with "make mmi".
 
 ---
-January, 2018	Updated: May, 2020
+January, 2018	Updated: Feb, 2021
 Thomas@Skibo.net
