@@ -24,6 +24,11 @@
  * SUCH DAMAGE.
  */
 
+/* ping.c
+ *
+ * Sheesh this is ugly.
+ */
+
 #include "types.h"
 #include "console.h"
 #include "sys.h"
@@ -39,44 +44,68 @@ static uint32_t ip_addr = 0xc0a80116; /* 192.168.1.22 */
 
 extern void dumpbytes(uint32_t, int);
 
-/* For receive packet data. */
-union {
-	struct __attribute__((__packed__)) {
-		uint8_t daddr[6];
-		uint8_t saddr[6];
-		uint16_t ethertype;
-
-		union {
-			/* ARP packet */
-			struct {
-				uint16_t hwtype;
-				uint16_t proto;
-				uint8_t hwlen;
-				uint8_t prlen;
-				uint16_t opcode;
-				uint8_t srcmac[6];
-				uint8_t srcip[4];
-				uint8_t dstmac[6];
-				uint8_t dstip[4];
-			} arp;
-			/* IP packet */
-			struct {
-				uint8_t vers_hlen;
-				uint8_t svc_type;
-				uint16_t totlen;
-				uint16_t id;
-				uint16_t frag;
-				uint8_t ttl;
-				uint8_t proto;
-				uint16_t hdrcsum;
-				uint8_t srcaddr[4];
-				uint8_t dstaddr[4];
-				uint8_t data[];
-			} ip;
-		};
-	};
-	uint32_t data[512];
+/* For receive and trasnmit packet data. */
+struct {
+	uint8_t daddr[6];
+	uint8_t saddr[6];
+	uint16_t ethertype;
+	uint8_t data[1500];
 } pkt;
+
+/* ARP packet */
+struct {
+	uint16_t hwtype;
+	uint16_t proto;
+	uint8_t hwlen;
+	uint8_t prlen;
+	uint16_t opcode;
+	uint8_t srcmac[6];
+	uint8_t srcip[4];
+	uint8_t dstmac[6];
+	uint8_t dstip[4];
+} arppkt;
+
+/* IP packet */
+struct {
+	uint8_t vers_hlen;
+	uint8_t svc_type;
+	uint16_t totlen;
+	uint16_t id;
+	uint16_t frag;
+	uint8_t ttl;
+	uint8_t proto;
+	uint16_t hdrcsum;
+	uint8_t srcaddr[4];
+	uint8_t dstaddr[4];
+	union {
+		struct icmp_s {
+			uint8_t type;
+			uint8_t code;
+			uint16_t csum;
+			uint16_t id;
+			uint16_t seq;
+			uint8_t data[];
+		} icmp;
+		struct udp_s {
+			uint16_t sport;
+			uint16_t dport;
+			uint16_t len;
+			uint16_t csum;
+			uint8_t data[];
+		} udp;
+		uint8_t data[1480];
+	};
+} ippkt;
+
+/* XXX: I'm avoiding using libc. */
+void
+*memcpy(void *dest, const void *src, long n)
+{
+	int i;
+	for (i = 0; i < n; i++)
+		((char *)dest)[i] = ((char *)src)[i];
+	return dest;
+}
 
 static uint16_t
 ipsum(uint16_t *data, int words)
@@ -97,41 +126,42 @@ input_arp(void)
 	uint32_t reqip;
 
 	/* Check hardware and proto address type and length. */
-	if (ntohs(pkt.arp.hwtype) != 1 || ntohs(pkt.arp.proto) != 0x800 ||
-	    pkt.arp.hwlen != 6 || pkt.arp.prlen != 4) {
+	if (ntohs(arppkt.hwtype) != 1 || ntohs(arppkt.proto) != 0x800 ||
+	    arppkt.hwlen != 6 || arppkt.prlen != 4) {
 		cons_puts("Unhandled ARP hwtype or proto\n");
 		return;
 	}
 
 	/* Only answer requests. */
-	if (ntohs(pkt.arp.opcode) != 1)
+	if (ntohs(arppkt.opcode) != 1)
 		return;
 
 	/* Looking for us? */
 	for (i = 0; i < 4; i++)
-		reqip = (reqip << 8) | pkt.arp.dstip[i];
+		reqip = (reqip << 8) | arppkt.dstip[i];
 	cons_printf("ARP Request for %d.%d.%d.%d\n",
-		    pkt.arp.dstip[0], pkt.arp.dstip[1],
-		    pkt.arp.dstip[2], pkt.arp.dstip[3]);
+		    arppkt.dstip[0], arppkt.dstip[1],
+		    arppkt.dstip[2], arppkt.dstip[3]);
 	if (reqip != ip_addr)
 		return;
 
 	/* Turn around req as response. */
 	for (i = 0; i < 6; i++) {
-		pkt.daddr[i] = pkt.arp.srcmac[i];
+		pkt.daddr[i] = arppkt.srcmac[i];
 		pkt.saddr[i] = eth_addr[i];
-		pkt.arp.dstmac[i] = pkt.arp.srcmac[i];
-		pkt.arp.srcmac[i] = eth_addr[i];
+		arppkt.dstmac[i] = arppkt.srcmac[i];
+		arppkt.srcmac[i] = eth_addr[i];
 	}
 	for (i = 0; i < 4; i++) {
-		pkt.arp.dstip[i] = pkt.arp.srcip[i];
-		pkt.arp.srcip[i] = ((ip_addr >> ((3 - i) * 8)) & 0xff);
+		arppkt.dstip[i] = arppkt.srcip[i];
+		arppkt.srcip[i] = ((ip_addr >> ((3 - i) * 8)) & 0xff);
 	}
-	pkt.arp.opcode = htons(2); /* reply */
+	arppkt.opcode = htons(2); /* reply */
 
 	cons_puts("Replying to ARP request.\n");
 
-	ether_tx(pkt.data, sizeof(pkt.arp) + 14);
+	memcpy(&pkt.data, &arppkt, sizeof(arppkt));
+	ether_tx((uint32_t *)&pkt, sizeof(arppkt) + 14);
 }
 
 void
@@ -139,72 +169,56 @@ input_ip(void)
 {
 	int i;
 	int hlen;
-	struct icmp_s {
-		uint8_t type;
-		uint8_t code;
-		uint16_t csum;
-		uint16_t id;
-		uint16_t seq;
-		uint8_t data[];
-	} *icmp;
-	struct udp_s {
-		uint16_t sport;
-		uint16_t dport;
-		uint16_t len;
-		uint16_t csum;
-		uint8_t data[];
-	} *udp;
 
 	/* Sanity check header length. */
-	hlen = 4 * (pkt.ip.vers_hlen & 0xf);
+	hlen = 4 * (ippkt.vers_hlen & 0xf);
 	if (hlen < 20) {
 		cons_puts("Short IP header!\n");
 		return;
 	}
 
 	/* Check header checksum. */
-	if (ipsum((uint16_t *)&pkt.ip, hlen / 2) != 0xffff) {
+	if (ipsum((uint16_t *)&ippkt, hlen / 2) != 0xffff) {
 		cons_puts("IP header checksum bad!\n");
 		return;
 	}
 
 	/* Be sure addressed to me. */
-	if ((pkt.ip.dstaddr[0] != ((ip_addr >> 24) & 0xff) ||
-	     pkt.ip.dstaddr[1] != ((ip_addr >> 16) & 0xff) ||
-	     pkt.ip.dstaddr[2] != ((ip_addr >> 8) & 0xff) ||
-	     pkt.ip.dstaddr[3] != (ip_addr & 0xff)) &&
-	    (pkt.ip.dstaddr[0] != 0xff || pkt.ip.dstaddr[1] != 0xff ||
-	     pkt.ip.dstaddr[2] != 0xff || pkt.ip.dstaddr[3] != 0xff)) {
+	if ((ippkt.dstaddr[0] != ((ip_addr >> 24) & 0xff) ||
+	     ippkt.dstaddr[1] != ((ip_addr >> 16) & 0xff) ||
+	     ippkt.dstaddr[2] != ((ip_addr >> 8) & 0xff) ||
+	     ippkt.dstaddr[3] != (ip_addr & 0xff)) &&
+	    (ippkt.dstaddr[0] != 0xff || ippkt.dstaddr[1] != 0xff ||
+	     ippkt.dstaddr[2] != 0xff || ippkt.dstaddr[3] != 0xff)) {
 		cons_puts("IP Packet not addressed to me: ");
-		cons_printf("%d.%d.%d.%d\n", pkt.ip.dstaddr[0],
-			    pkt.ip.dstaddr[1], pkt.ip.dstaddr[2],
-			    pkt.ip.dstaddr[3]);
+		cons_printf("%d.%d.%d.%d\n", ippkt.dstaddr[0],
+			    ippkt.dstaddr[1], ippkt.dstaddr[2],
+			    ippkt.dstaddr[3]);
 		return;
 	}
 
 	/* No fragments! */
-	if ((ntohs(pkt.ip.frag) & 0x3fff) != 0) {
+	if ((ntohs(ippkt.frag) & 0x3fff) != 0) {
 		cons_puts("Dropping fragmented IP packet.\n");
 		return;
 	}
 
 	/* Protocol? */
-	if (pkt.ip.proto == 0x01) {
+	if (ippkt.proto == 0x01) {
 		/* ICMP */
-		int icmp_len = ntohs(pkt.ip.totlen) - hlen;
-		icmp = (struct icmp_s *)((char *)&pkt.ip + hlen);
+		int icmp_len = ntohs(ippkt.totlen) - hlen;
 
 		/* Check ICMP checksum. */
-		if (ipsum((uint16_t *)icmp, icmp_len / 2) != 0xffff) {
+		if (ipsum((uint16_t *)&ippkt.icmp, icmp_len / 2) != 0xffff) {
 			cons_puts("ICMP checksum bad!\n");
 			return;
 		}
 
-		if (icmp->type == 8 /* Echo Request */) {
+		if (ippkt.icmp.type == 8 /* Echo Request */) {
 			cons_puts("ICMP Echo Request: from ");
-			cons_printf("%d.%d.%d.%d\n", pkt.ip.srcaddr[0],
-				    pkt.ip.srcaddr[1], pkt.ip.srcaddr[2],
-				    pkt.ip.srcaddr[3]);
+			cons_printf("%d.%d.%d.%d\n", ippkt.srcaddr[0],
+				    ippkt.srcaddr[1], ippkt.srcaddr[2],
+				    ippkt.srcaddr[3]);
 
 			/* Turn around packet as reply. */
 			for (i = 0; i < 6; i++) {
@@ -212,33 +226,34 @@ input_ip(void)
 				pkt.saddr[i] = eth_addr[i];
 			}
 			for (i = 0; i < 4; i++) {
-				pkt.ip.dstaddr[i] = pkt.ip.srcaddr[i];
-				pkt.ip.srcaddr[i] =
+				ippkt.dstaddr[i] = ippkt.srcaddr[i];
+				ippkt.srcaddr[i] =
 					(ip_addr >> ((3 - i) * 8)) & 0xff;
 			}
-			pkt.ip.ttl = 64;
+			ippkt.ttl = 64;
 
 			/* Recalculate IP header csum. */
-			pkt.ip.hdrcsum = 0;
-			pkt.ip.hdrcsum = htons(ipsum((uint16_t *)&pkt.ip,
+			ippkt.hdrcsum = 0;
+			ippkt.hdrcsum = htons(ipsum((uint16_t *)&ippkt,
 						     hlen / 2) ^ 0xffff);
 
-			icmp->type = 0 /* Echo Reply */;
+			ippkt.icmp.type = 0 /* Echo Reply */;
 
 			/* Recalculate ICMP checksum. */
-			icmp->csum = 0;
-			icmp->csum = htons(ipsum((uint16_t *)icmp,
-						 icmp_len / 2) ^ 0xffff);
+			ippkt.icmp.csum = 0;
+			ippkt.icmp.csum = htons(ipsum((uint16_t *)
+						       &ippkt.icmp,
+						       icmp_len / 2) ^ 0xffff);
 
 			/* Transmit. */
-			ether_tx(pkt.data, hlen + icmp_len + 24);
+			memcpy(&pkt.data, &ippkt, hlen + icmp_len);
+			ether_tx((uint32_t *)&pkt, hlen + icmp_len + 14);
 		}
-	} else if (pkt.ip.proto == 0x11) {
+	} else if (ippkt.proto == 0x11) {
 		/* UDP */
-		udp = (struct udp_s *)pkt.ip.data;
 
 		/* Check UDP checksum. */
-		if (udp->csum != 0) {
+		if (ippkt.udp.csum != 0) {
 			uint32_t csum;
 			struct {
 				uint8_t srcip[4];
@@ -249,14 +264,15 @@ input_ip(void)
 			} pseudo;
 
 			for (i = 0; i < 4; i++) {
-				pseudo.srcip[i] = pkt.ip.srcaddr[i];
-				pseudo.dstip[i] = pkt.ip.dstaddr[i];
+				pseudo.srcip[i] = ippkt.srcaddr[i];
+				pseudo.dstip[i] = ippkt.dstaddr[i];
 			}
 			pseudo.zero = 0;
 			pseudo.proto = 0x11;
-			pseudo.udplen = udp->len;
+			pseudo.udplen = ippkt.udp.len;
 			csum = ipsum((uint16_t *)&pseudo, sizeof(pseudo) / 2);
-			csum += ipsum((uint16_t *)udp, ntohs(udp->len) / 2);
+			csum += ipsum((uint16_t *)&ippkt.udp,
+				      ntohs(ippkt.udp.len) / 2);
 			csum = (csum >> 16) + (csum & 0xffff);
 
 			if (csum != 0xffff) {
@@ -267,10 +283,10 @@ input_ip(void)
 
 		cons_printf("UDP Packet: "
 			    "src port = %d dst port = %d  len = %d\n",
-			    ntohs(udp->sport), ntohs(udp->dport),
-			    ntohs(udp->len));
+			    ntohs(ippkt.udp.sport), ntohs(ippkt.udp.dport),
+			    ntohs(ippkt.udp.len));
 	} else
-		cons_printf("Unsupported IP proto: 0x%2x\n", pkt.ip.proto);
+		cons_printf("Unsupported IP proto: 0x%2x\n", ippkt.proto);
 }
 
 void
@@ -283,7 +299,7 @@ do_pingtest(void)
 
 	for (;;) {
 		/* Get packet. */
-		while (ether_rx(pkt.data, sizeof(pkt.data)) == 0) {
+		while (ether_rx((uint32_t *)&pkt, sizeof(pkt)) == 0) {
 			if (cons_pollc() >= 0)
 				return;
 		}
@@ -301,7 +317,8 @@ do_pingtest(void)
 		switch (ntohs(pkt.ethertype)) {
 		case 0x800:
 			cons_puts("IP Packet: \n");
-			if ((pkt.ip.vers_hlen & 0xf0) != 0x40) {
+			memcpy(&ippkt, &pkt.data, sizeof(ippkt));
+			if ((ippkt.vers_hlen & 0xf0) != 0x40) {
 				cons_puts("Bad vers_len\n");
 				dumpbytes((uint32_t)&pkt, sizeof(pkt));
 			}
@@ -310,12 +327,14 @@ do_pingtest(void)
 			break;
 		case 0x806:
 			/* ARP. */
+			cons_puts("ARP Packet:\n");
+			memcpy(&arppkt, &pkt.data, sizeof(arppkt));
 			input_arp();
 			break;
 		default:
 			cons_printf("\n\rUnhandled Ethertype: %4x\n",
 				    ntohs(pkt.ethertype));
-			dumpbytes((uint32_t)&pkt, sizeof(pkt.data));
+			dumpbytes((uint32_t)&pkt, sizeof(pkt));
 		}
 	}
 }
