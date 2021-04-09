@@ -39,16 +39,12 @@ default: $(TARGETS)
 bootrom.elf: $(OBJS) $(LDSCRIPT)
 	$(LD) $(LFLAGS) -o $@ $(OBJS) $(LIBS)
 
-bootrom_text.bin: bootrom.elf
-	$(CROSS_COMPILE)objcopy -j .vects -j .text -j .rodata -O binary $< $@
+%.bin: %.elf
+	$(CROSS_COMPILE)objcopy -O binary $< $@
 
-bootrom_data.bin: bootrom.elf
-	$(CROSS_COMPILE)objcopy -j .data -O binary $< $@
-
-bootrom.mem: bootrom_text.bin bootrom_data.bin
+%.mem: %.bin
 	echo "@00000000" > $@
-	$(BIN2HEX) bootrom_text.bin >> $@
-	$(BIN2HEX) bootrom_data.bin >> $@
+	$(BIN2HEX) $< >> $@
 
 %.lst: %.elf
 	$(CROSS_COMPILE)objdump --disassemble-all $< > $@

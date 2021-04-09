@@ -42,7 +42,7 @@ _start:
 	/* Copy initialized data to RAM. */
 	la      a0, _data
 	la      a1, _edata
-	la      a2, _datai
+	la      a2, _erodata
 3:
 	lw      a3, 0(a2)
 	addi    a2, a2, 4

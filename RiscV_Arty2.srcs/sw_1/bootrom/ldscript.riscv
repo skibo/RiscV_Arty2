@@ -1,41 +1,53 @@
 OUTPUT_ARCH(riscv)
+
+MEMORY
+{
+	rom (rx) : ORIGIN = 0x0000, LENGTH = 0x6000
+	ram (rwx) : ORIGIN = 0x6000, LENGTH = 0x2000
+}
+
 ENTRY(_start)
 SECTIONS
 {
-	. = 0x0000;
-	_text = .;
 	.text	:
 	{
+		_text = .;
+
 		vect.o(.vects)
 		start.o(.text)
 		*(.text)
+
 		. = ALIGN(4);
-	}
-	_etext = .;
-	_rodata = .;
+		_etext = .;
+	} > rom
 	.rodata :
 	{
-		*(.rodata)
-		. = ALIGN(4);
-	}
-	_datai = .;
+		_rodata = .;
 
-	. = 0x6000;
-	_data = .;
+		*(.rodata)
+
+		. = ALIGN(4);
+		_erodata = .;
+	} > rom
+
 	.data :
 	{
+		_data = .;
+
 		*(.sdata)
 		*(.data)
-		. = ALIGN(4);
-	}
-	_edata = .;
 
-	__bss_start = .;
+		. = ALIGN(4);
+		_edata = .;
+	} > ram AT> rom
+
 	.bss :
 	{
-		*(.bss)
-		. = ALIGN(4);
-	}
-	__bss_end = .;
+		__bss_start = .;
 
+		*(.bss)
+
+		. = ALIGN(4);
+		__bss_end = .;
+	} > ram
 }
