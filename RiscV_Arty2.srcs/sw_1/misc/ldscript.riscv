@@ -1,0 +1,51 @@
+OUTPUT_ARCH(riscv)
+
+MEMORY
+{
+	ram (rwx) : ORIGIN = 0x4000, LENGTH = 0x3000
+}
+
+ENTRY(_start)
+SECTIONS
+{
+	.text	:
+	{
+		_text = .;
+
+		start.o(.text)
+		*(.text)
+
+		. = ALIGN(4);
+		_etext = .;
+	} > ram
+	.rodata :
+	{
+		_rodata = .;
+
+		*(.rodata)
+
+		. = ALIGN(4);
+		_erodata = .;
+	} > ram
+
+	.data :
+	{
+		_data = .;
+
+		*(.sdata)
+		*(.data)
+
+		. = ALIGN(4);
+		_edata = .;
+	} > ram
+
+	.bss :
+	{
+		__bss_start = .;
+
+		*(.bss)
+
+		. = ALIGN(4);
+		__bss_end = .;
+	} > ram
+}

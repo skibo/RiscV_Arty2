@@ -1,0 +1,66 @@
+RiscV_Arty2
+-----------
+
+A tiny RiscV embedded system on a Digilent Arty board.  This is a Xilinx
+Vivado project utilizing my homebrew RiscV cpu (in git submodule RiscVToo)
+and Xilinx IP for UART and GPIO peripherals.
+
+In the RiscV_Arty2.srcs/sw_1/bootrom directory is some source code that
+started out as a boot-rom but is really just "Hello World" that blinks
+the LEDs and has a crude monitor that can peek and poke locations.
+
+Building (Linux only)
+---------------------
+You need:
+        + Xilinx Vivado that includes a Risc-V toolchain. (I'm using 2023.2)
+
+Clone repository and submodule:
+
+   git clone https://github.com/skibo/RiscV_Arty2
+   cd RiscV_Arty2
+   git submodule update --init
+
+The $XILINX_VIVADO variable must point to your Xilinx Vivado directory.  (If
+you are already running Vivado, this variable is already set by the
+settings64.sh script.)
+
+First, make the Vivado project:
+
+   make project
+
+At this point, you should be able to open up the project from within Vivado
+and build the bitstream and program the Arty with the Hardware Manager.  But,
+if you prefer, you can make the bitstream from the command line with this:
+
+   make bitstream
+
+Before programming the Arty with bitstream, you should have a serial console
+running.  I use cu for my serial console:
+
+   cu -l /dev/ttyUSB1 -s 115200
+
+Then, program the board from the command line with this:
+
+   make program
+
+Modifying Firmware
+------------------
+If you make modifications to the bootrom firmware and recompile (in
+RiscV_Arty2.srcs/sw_1/bootrom), the bitstream can be updated without
+going through the whole synthesis and routing processes.  First, you
+can create an MMI file with this:
+
+   make mmi
+
+This creates an XML file (bootrom.mmi) that the Xilinx tool "updatemem"
+can use to reinstall the firmware in the bitstream.  It also creates an
+"updaterom.sh" shell script which is convenient for updating the bitstream
+with the new firmware.
+
+Once the mmi file is created, you only need to run updaterom.sh  each time
+you recompile the firmware.  Any time the bitstream is recreated, you'll
+need to create a new bootrom.mmi file with "make mmi".
+
+---
+January, 2018	Updated: Jan, 2024
+Thomas@Skibo.net

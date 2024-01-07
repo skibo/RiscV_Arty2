@@ -1,0 +1,3 @@
+[submodule "RiscVToo"]
+	path = RiscVToo
+	url = ./RiscVToo/
