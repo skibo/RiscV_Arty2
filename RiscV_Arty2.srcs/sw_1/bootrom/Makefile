@@ -18,11 +18,10 @@ LDSCRIPT=ldscript.riscv
 COMMON=../common
 
 AFLAGS=-march=rv32i_zicsr -I$(COMMON)
-CFLAGS=-g -I$(COMMON) -fno-builtin -march=rv32i_zicsr -mabi=ilp32
+CFLAGS=-g -I$(COMMON) -fno-builtin -march=rv32i -mabi=ilp32
 LFLAGS=-melf32lriscv -static -T $(LDSCRIPT)
 
-# XXX: for some reason, if I use arch rv32i_zicsr, I link with wrong libgcc.
-LIBS=$(shell $(CC) $(CFLAGS) -march=rv32i -mabi=ilp32 -print-libgcc-file-name)
+LIBS=$(shell $(CC) $(CFLAGS) -print-libgcc-file-name)
 
 # Optional GDB stub support
 # CFLAGS+=-DGDBSTUB

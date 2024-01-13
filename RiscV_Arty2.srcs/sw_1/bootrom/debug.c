@@ -487,7 +487,7 @@ dbg_exception(uint32_t mcause, uint32_t mstatus, uint32_t mepc,
 			dbg_cont_step(dbgpkt, &mepc);
 			for (i = 0; i < 32; i++)
 				xregs[i] = xregs2[i];
-			asm volatile ("csrw mepc, %0" : : "r"(mepc));
+			setmepc(mepc);
 			return;
 		default:
 			/* Empty response. */

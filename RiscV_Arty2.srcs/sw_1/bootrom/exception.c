@@ -76,7 +76,7 @@ exception(uint32_t mcause, uint32_t mstatus, uint32_t mepc, uint32_t mbadaddr)
 
 		/* Restart after offending instruction. */
 		mepc += 4;
-		asm volatile ("csrw mepc, %0" : : "r"(mepc));
+		setmepc(mepc);
 
 		return mstatus;
 	}
@@ -92,7 +92,7 @@ exception(uint32_t mcause, uint32_t mstatus, uint32_t mepc, uint32_t mbadaddr)
 	/* If exception in ebreak(), allow to continue. */
 	if (mepc == (uint32_t)ebreak) {
 		mepc += 4;
-		asm volatile ("csrw mepc, %0" : : "r"(mepc));
+		setmepc(mepc);
 		return mstatus;
 	}
 

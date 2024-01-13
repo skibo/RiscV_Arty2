@@ -25,6 +25,7 @@
  */
 #include "types.h"
 #include "io.h"
+#include "sys.h"
 #include "blinky.h"
 
 #define BLINK_INTERVAL	10000001U	/* 100ms / 10ns */
@@ -67,18 +68,14 @@ void
 blink_start(void)
 {
 	blink_enable = 1;
-	/* Set MTIE bit. */
-	asm volatile ("li t0, 1 << 7\n\t"
-		      "csrs mie, t0\n");
+	setmtie();	/* Enable interrupts. */
 	timer_intr();
 }
 
 void
 blink_stop(void)
 {
-	/* Reset MTIE bit. */
-	asm volatile ("li t0, 1 << 7\n\t"
-		      "csrc mie, t0\n");
+	clrmtie();	/* Disable interrupts. */
 	blink_enable = 0;
 
 	/* Turn off LEDs. */

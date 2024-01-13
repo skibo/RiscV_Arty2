@@ -235,3 +235,29 @@ DELAY:
 ebreak:
 	ebreak
 	ret
+
+	/* void setmepc(uint32_t mepc);
+	 * Set mepc csr value.
+	 */
+	.global setmepc
+setmepc:
+	csrw	mepc,a0
+	ret
+
+	/* void setmtie(void);
+	 * Set mtie bit in mie csr (enable interrupts).
+	 */
+	.global setmtie
+setmtie:
+	li	t0,128
+	csrs	mie,t0
+	ret
+
+	/* void clrmtie(void);
+	 * Clear mtie bit in mie csr (disable interrupts).
+	 */
+	.global clrmtie
+clrmtie:
+	li	t0,128
+	csrc	mie,t0
+	ret
